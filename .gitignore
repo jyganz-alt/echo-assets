@@ -1,0 +1,20 @@
+# Browser "Save Page As" leftover — not referenced by index.html
+index_files/
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor junk
+.vscode/
+.idea/
+*.swp
+*~
+
+# Netlify CLI local state (if ever used)
+.netlify/
+
+# Local environment overrides
+.env
+.env.local

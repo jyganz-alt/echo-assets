@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>
+// Load Supabase with fallback
+(function() {
+  var cdns = [
+    'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js',
+    'https://unpkg.com/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js'
+  ];
+  var idx = 0;
+  function loadNext() {
+    if (idx >= cdns.length) return;
+    var s = document.createElement('script');
+    s.src = cdns[idx++];
+    s.onerror = loadNext;
+    document.head.appendChild(s);
+  }
+  loadNext();
+})();
+</script>
+<script>
+window.addEventListener('load', function() {
+  if (typeof supabase === 'undefined') {
+    document.getElementById('loading').innerHTML = '<div style="color:#ff4d1c;font-family:sans-serif;font-size:14px;text-align:center;padding:20px;">Unable to load required scripts.<br>Please check your internet connection and refresh.</div>';
+  }
+});
+</script>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNjAgMTYwIj48ZGVmcz48Y2xpcFBhdGggaWQ9ImMiPjxjaXJjbGUgY3g9IjgwIiBjeT0iODAiIHI9IjczIi8+PC9jbGlwUGF0aD48L2RlZnM+PGNpcmNsZSBjeD0iODAiIGN5PSI4MCIgcj0iNzYiIGZpbGw9IiMxYTFhMWEiLz48Y2lyY2xlIGN4PSI4MCIgY3k9IjgwIiByPSI3NiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmY0ZDFjIiBzdHJva2Utd2lkdGg9IjQiLz48dGV4dCB4PSI4NCIgeT0iNjUiIGZvbnQtZmFtaWx5PSJETSBTYW5zLHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAwIiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZmY0ZDFjIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0iY2VudHJhbCIgY2xpcC1wYXRoPSJ1cmwoI2MpIj5lPC90ZXh0Pjwvc3ZnPg==" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>echo — tell your true story</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css" />
+    <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; font-family: 'DM Sans', sans-serif; background: #f0ede6; }
+    .app { display: grid; grid-template-columns: 200px 1fr 220px; grid-template-rows: auto 1fr; height: 100vh; }
+    .app-header { grid-column: 1 / -1; background: #1a1a1a; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; }
+    .header-logo-line { display: flex; align-items: center; gap: 6px; }
+    .header-tagline-left { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 500; white-space: nowrap; }
+    .header-logo { font-size: 28px; font-weight: 700; color: #fff; text-transform: lowercase; letter-spacing: -0.04em; line-height: 1; }
+    .header-logo .o { color: #ff4d1c; }
+    .btn-signout { background: none; border: 1px solid #555; color: #aaa; font-family: 'DM Sans', sans-serif; font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; padding: 4px 10px; cursor: pointer; }
+    .btn-signout:hover { border-color: #fff; color: #fff; }
+    .sidebar { background: #e8e3da; border-right: 2px solid #1a1a1a; display: flex; flex-direction: column; overflow-y: auto; }
+    .nav-item { padding: 10px 16px; font-size: 12px; color: #555; text-transform: uppercase; letter-spacing: 0.06em; cursor: pointer; border-bottom: 1px solid #d5cfc5; display: flex; align-items: center; gap: 8px; font-weight: 500; flex-shrink: 0; }
+    .nav-item:hover { background: #ddd8cf; color: #1a1a1a; }
+    .nav-item.active { background: #ff4d1c; color: #fff; }
+    .nav-item i { font-size: 16px; }
+    .sidebar-profile { padding: 12px 16px; border-top: 2px solid #1a1a1a; border-bottom: 2px solid #1a1a1a; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .avatar { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0; }
+    .av-you { background: #ff4d1c; color: #fff; } .av-a { background: #1a1a1a; color: #fff; } .av-b { background: #555; color: #fff; } .av-anon { background: #ccc; color: #888; }
+    .profile-name { font-size: 12px; font-weight: 700; color: #1a1a1a; text-transform: uppercase; letter-spacing: 0.04em; }
+    .profile-handle { font-size: 10px; color: #888; text-transform: uppercase; }
+    .badge { display: inline-flex; align-items: center; justify-content: center; background: #ff4d1c; color: #fff; border-radius: 10px; font-size: 9px; font-weight: 700; min-width: 15px; height: 15px; padding: 0 3px; margin-left: 4px; }
+    .sidebar-panel { padding: 12px 16px; border-bottom: 1px solid #d5cfc5; flex-shrink: 0; }
+    .panel-title { font-size: 10px; font-weight: 700; color: #1a1a1a; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; border-bottom: 2px solid #1a1a1a; padding-bottom: 5px; }
+    .search-box { width: 100%; border: 1.5px solid #c5bfb5; background: #f0ede6; font-family: 'DM Sans', sans-serif; font-size: 10px; color: #555; padding: 4px 7px; outline: none; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+    .search-box:focus { border-color: #ff4d1c; } .search-box::placeholder { color: #bbb; }
+    .tag-cloud { display: flex; flex-wrap: wrap; gap: 4px; }
+    .cloud-tag { font-size: 9px; padding: 2px 6px; border: 1px solid #c5bfb5; color: #888; cursor: pointer; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 500; }
+    .cloud-tag:hover { border-color: #ff4d1c; color: #ff4d1c; }
+    .btn-sm { background: none; border: 1.5px solid #c5bfb5; font-family: 'DM Sans', sans-serif; font-size: 9px; cursor: pointer; color: #888; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.06em; padding: 3px 8px; font-weight: 500; }
+    .btn-sm:hover { border-color: #1a1a1a; color: #1a1a1a; }
+    .btn-sm.on { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+    .feed { overflow-y: auto; display: flex; flex-direction: column; }
+    .motto-bar { background: #ff4d1c; padding: 10px 20px; position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+    .motto { font-size: 22px; font-weight: 700; color: #fff; text-transform: lowercase; letter-spacing: -0.02em; line-height: 1; }
+    .feed-tabs { display: flex; }
+    .feed-tab { font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.08em; padding: 4px 10px; cursor: pointer; border: 1px solid rgba(255,255,255,0.3); }
+    .feed-tab.active { background: #fff; color: #ff4d1c; border-color: #fff; }
+    .view { display: none; } .view.active { display: block; }
+    .compose { padding: 14px 20px; border-bottom: 2px solid #1a1a1a; background: #f0ede6; }
+    .compose-username { font-size: 10px; color: #ff4d1c; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; margin-bottom: 6px; }
+    .compose-meta-row { display: flex; gap: 16px; margin-bottom: 10px; align-items: center; }
+    .meta-field-wrap { flex: 1; display: flex; align-items: center; border-bottom: 1px solid #c5bfb5; }
+    .meta-field { flex: 1; font-family: 'DM Sans', sans-serif; font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 0.08em; outline: none; white-space: nowrap; overflow: hidden; min-width: 10px; }
+    .meta-field:empty:before { content: attr(data-placeholder); color: #ccc; }
+    .meta-field-wrap:focus-within { border-bottom-color: #ff4d1c; }
+    .compose-body-wrap { position: relative; margin-bottom: 12px; min-height: 70px; }
+    .compose-body { width: 100%; border: none; border-bottom: 2px solid #1a1a1a; background: transparent; font-family: 'DM Sans', sans-serif; font-size: 17px; font-weight: 500; color: #1a1a1a; padding: 6px 0; outline: none; resize: none; min-height: 70px; line-height: 1.5; }
+    .compose-placeholder { position: absolute; top: 6px; left: 0; pointer-events: none; font-family: 'DM Sans', sans-serif; font-size: 17px; font-weight: 500; color: #bbb; display: flex; align-items: center; white-space: nowrap; }
+    .ph-in-group { display: inline-flex; align-items: center; color: #ff4d1c; font-size: 11px; line-height: 1; vertical-align: middle; position: relative; top: -1px; margin: 0 2px; }
+    .ph-in-group em { font-style: italic; }
+    .tag-picker-label { font-size: 10px; color: #aaa; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 500; margin-bottom: 6px; }
+    .tag-row-1 { display: flex; flex-wrap: nowrap; gap: 4px; align-items: center; margin-bottom: 6px; overflow: hidden; }
+    .tag-opt { font-size: 10px; padding: 2px 8px; border: 1.5px solid #c5bfb5; color: #888; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; font-weight: 500; background: none; font-family: 'DM Sans', sans-serif; white-space: nowrap; flex-shrink: 0; }
+    .tag-opt:hover { border-color: #ff4d1c; color: #ff4d1c; }
+    .tag-opt.selected { border-color: #ff4d1c; color: #ff4d1c; background: rgba(255,77,28,0.06); }
+    .tag-ellipsis-btn { font-size: 10px; padding: 2px 8px; border: 1.5px solid #ff4d1c; color: #ff4d1c; cursor: pointer; font-weight: 700; background: none; font-family: 'DM Sans', sans-serif; white-space: nowrap; flex-shrink: 0; }
+    .tag-drawer { display: none; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; padding: 8px; border: 1.5px solid #c5bfb5; background: #ebe7df; }
+    .tag-drawer.open { display: flex; }
+    .tag-custom-row { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+    .tag-custom-input { border: none; border-bottom: 1px solid #c5bfb5; background: transparent; font-family: 'DM Sans', sans-serif; font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.08em; outline: none; padding: 1px 0; flex: 1; }
+    .tag-custom-input::placeholder { color: #ccc; }
+    .compose-footer { display: flex; align-items: center; justify-content: space-between; }
+    .compose-ts { font-size: 10px; color: #aaa; text-transform: uppercase; letter-spacing: 0.08em; }
+    .btn-publish { background: #1a1a1a; color: #fff; border: none; font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; padding: 8px 18px; cursor: pointer; }
+    .btn-publish:hover { background: #ff4d1c; }
+    .post { border-bottom: 2px solid #1a1a1a; padding: 14px 20px; background: #f0ede6; }
+    .post-accent { width: 32px; height: 3px; background: #ff4d1c; margin-bottom: 8px; }
+    .post-meta { font-size: 10px; color: #aaa; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .post-meta-handle { color: #ff4d1c; font-weight: 700; }
+    .post-meta-sep { color: #ccc; }
+    .post-subject { font-size: 15px; font-weight: 700; color: #1a1a1a; text-transform: uppercase; letter-spacing: -0.01em; margin-bottom: 6px; }
+    .post-body { font-size: 13px; color: #555; line-height: 1.65; margin-bottom: 10px; }
+    .post-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
+    .post-tag { font-size: 9px; padding: 2px 6px; border: 1px solid #c5bfb5; color: #999; text-transform: uppercase; letter-spacing: 0.06em; }
+    .post-actions { display: flex; align-items: center; }
+    .action-btn { display: flex; align-items: center; gap: 5px; background: none; border: none; color: #aaa; font-family: 'DM Sans', sans-serif; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; cursor: pointer; padding: 5px 12px 5px 0; }
+    .action-btn i { font-size: 15px; }
+    .action-btn:hover { color: #1a1a1a; }
+    .action-btn.liked { color: #ff4d1c; }
+    .action-btn.bookmarked { color: #ff4d1c; }
+    .action-btn.dm-btn:hover { color: #ff4d1c; }
+    .post-owner-actions { display: flex; gap: 6px; margin-left: auto; }
+    .owner-btn { font-size: 9px; padding: 2px 8px; border: 1.5px solid #c5bfb5; background: none; font-family: 'DM Sans', sans-serif; color: #888; cursor: pointer; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 500; }
+    .owner-btn:hover { border-color: #1a1a1a; color: #1a1a1a; }
+    .owner-btn.on { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+    .owner-btn.delete { color: #cc3300; border-color: #cc3300; }
+    .owner-btn.delete:hover { background: #cc3300; color: #fff; }
+    .edit-body { width: 100%; border: none; border-bottom: 2px solid #ff4d1c; background: #ebe7df; font-family: 'DM Sans', sans-serif; font-size: 13px; color: #1a1a1a; outline: none; resize: none; min-height: 60px; line-height: 1.65; padding: 6px; margin-bottom: 8px; }
+    .edit-actions { display: flex; gap: 6px; margin-bottom: 8px; }
+    .btn-save-edit { background: #1a1a1a; color: #fff; border: none; font-family: 'DM Sans', sans-serif; font-size: 9px; font-weight: 700; text-transform: uppercase; padding: 5px 12px; cursor: pointer; }
+    .btn-save-edit:hover { background: #ff4d1c; }
+    .btn-cancel-edit { background: none; border: 1.5px solid #c5bfb5; font-family: 'DM Sans', sans-serif; font-size: 9px; color: #888; text-transform: uppercase; padding: 4px 8px; cursor: pointer; }
+    .comments-section { margin-top: 10px; border-top: 1px solid #d5cfc5; padding-top: 10px; display: none; }
+    .comments-section.open { display: block; }
+    .comment { display: flex; gap: 8px; margin-bottom: 8px; }
+    .comment-content { flex: 1; }
+    .comment-author { font-size: 11px; font-weight: 700; color: #1a1a1a; text-transform: uppercase; letter-spacing: 0.06em; display: flex; align-items: center; gap: 5px; }
+    .comment-author .anon-label { color: #aaa; font-weight: 400; font-style: italic; text-transform: none; }
+    .comment-author .handle-pill { font-size: 9px; color: #ff4d1c; background: rgba(255,77,28,0.08); padding: 1px 5px; font-weight: 700; }
+    .comment-text { font-size: 12px; color: #666; line-height: 1.5; margin-top: 2px; }
+    .comment-block-btn { font-size: 8px; padding: 1px 6px; border: 1px solid #ccc; background: none; color: #bbb; cursor: pointer; text-transform: uppercase; font-family: 'DM Sans', sans-serif; margin-left: auto; flex-shrink: 0; align-self: flex-start; }
+    .comment-block-btn:hover { border-color: #cc3300; color: #cc3300; }
+    .comment-input-wrap { margin-top: 10px; border: 1.5px solid #c5bfb5; background: #ebe7df; }
+    .c-textarea { width: 100%; border: none; padding: 8px 10px; font-family: 'DM Sans', sans-serif; font-size: 12px; background: transparent; color: #1a1a1a; outline: none; resize: none; min-height: 34px; }
+    .c-textarea::placeholder { color: #bbb; }
+    .c-identity { padding: 5px 10px; border-top: 1px solid #d5cfc5; display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+    .c-id-label { font-size: 9px; color: #aaa; text-transform: uppercase; }
+    .c-footer { padding: 5px 10px; border-top: 1px solid #d5cfc5; display: flex; justify-content: flex-end; gap: 6px; align-items: center; }
+    .c-ts { font-size: 9px; color: #bbb; text-transform: uppercase; flex: 1; }
+    .btn-reply { background: #1a1a1a; color: #fff; border: none; font-family: 'DM Sans', sans-serif; font-size: 9px; font-weight: 700; text-transform: uppercase; padding: 5px 12px; cursor: pointer; }
+    .btn-reply:hover { background: #ff4d1c; }
+    .btn-cancel-c { background: none; border: 1.5px solid #c5bfb5; font-family: 'DM Sans', sans-serif; font-size: 9px; color: #888; text-transform: uppercase; padding: 4px 8px; cursor: pointer; }
+    .dm-wrap { display: flex; flex-direction: column; height: calc(100vh - 53px); }
+    .dm-inbox { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+    .dm-header { padding: 12px 20px; border-bottom: 2px solid #1a1a1a; background: #f0ede6; flex-shrink: 0; }
+    .dm-title { font-size: 13px; font-weight: 700; color: #1a1a1a; text-transform: uppercase; }
+    .dm-list { overflow-y: auto; flex: 1; }
+    .dm-thread { display: flex; align-items: center; gap: 10px; padding: 12px 20px; border-bottom: 1px solid #d5cfc5; cursor: pointer; }
+    .dm-thread:hover { background: #ebe7df; }
+    .dm-thread-info { flex: 1; min-width: 0; }
+    .dm-thread-name { font-size: 12px; font-weight: 700; color: #1a1a1a; text-transform: uppercase; }
+    .dm-thread-preview { font-size: 11px; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+    .dm-unread { width: 7px; height: 7px; border-radius: 50%; background: #ff4d1c; flex-shrink: 0; }
+    .dm-new-btn { margin: 12px 20px; }
+    .btn-new-dm { background: #1a1a1a; color: #fff; border: none; font-family: 'DM Sans', sans-serif; font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 8px 16px; cursor: pointer; width: 100%; }
+    .btn-new-dm:hover { background: #ff4d1c; }
+    .dm-convo { display: none; flex-direction: column; height: calc(100vh - 53px); }
+    .dm-convo.open { display: flex; }
+    .dm-convo-header { padding: 12px 20px; border-bottom: 2px solid #1a1a1a; background: #f0ede6; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .dm-back { font-size: 9px; color: #888; text-transform: uppercase; cursor: pointer; border: none; background: none; font-family: 'DM Sans', sans-serif; font-weight: 700; }
+    .dm-back:hover { color: #ff4d1c; }
+    .dm-convo-name { font-size: 13px; font-weight: 700; color: #1a1a1a; text-transform: uppercase; flex: 1; }
+    .dm-messages { flex: 1; overflow-y: auto; padding: 14px 20px; display: flex; flex-direction: column; gap: 10px; }
+    .dm-msg { max-width: 75%; }
+    .dm-msg.sent { align-self: flex-end; }
+    .dm-msg.recv { align-self: flex-start; }
+    .dm-msg-bubble { padding: 8px 12px; font-size: 12px; line-height: 1.5; }
+    .dm-msg.sent .dm-msg-bubble { background: #1a1a1a; color: #fff; }
+    .dm-msg.recv .dm-msg-bubble { background: #ebe7df; color: #333; border: 1px solid #d5cfc5; }
+    .dm-msg-meta { font-size: 9px; color: #bbb; text-transform: uppercase; margin-top: 3px; }
+    .dm-msg.sent .dm-msg-meta { text-align: right; }
+    .dm-input-row { padding: 10px 20px; border-top: 2px solid #1a1a1a; display: flex; gap: 8px; align-items: center; flex-shrink: 0; background: #f0ede6; }
+    .dm-input { flex: 1; border: 1.5px solid #c5bfb5; background: #ebe7df; font-family: 'DM Sans', sans-serif; font-size: 12px; color: #1a1a1a; padding: 7px 10px; outline: none; }
+    .dm-input:focus { border-color: #ff4d1c; }
+    .dm-input::placeholder { color: #bbb; }
+    .btn-dm-send { background: #ff4d1c; color: #fff; border: none; font-family: 'DM Sans', sans-serif; font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 8px 14px; cursor: pointer; }
+    .empty-state { padding: 40px 20px; text-align: center; font-size: 12px; color: #aaa; text-transform: uppercase; letter-spacing: 0.08em; line-height: 1.8; }
+    .blocked-section { padding: 12px 20px; border-bottom: 2px solid #1a1a1a; }
+    .blocked-item { display: flex; align-items: center; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #d5cfc5; font-size: 11px; color: #555; text-transform: uppercase; }
+    .new-post-anim { animation: slideIn 0.3s ease; }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1a1a1a; color: #fff; padding: 8px 18px; font-size: 11px; font-family: 'DM Sans', sans-serif; z-index: 9999; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0; transition: opacity 0.2s; pointer-events: none; }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; display: none; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: #f0ede6; border: 2px solid #1a1a1a; padding: 20px; width: 300px; }
+    .modal-title { font-size: 12px; font-weight: 700; color: #1a1a1a; text-transform: uppercase; border-bottom: 2px solid #1a1a1a; padding-bottom: 8px; margin-bottom: 12px; }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+    .btn-modal-confirm { background: #ff4d1c; color: #fff; border: none; font-family: 'DM Sans', sans-serif; font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 7px 14px; cursor: pointer; }
+    .btn-modal-cancel { background: none; border: 1.5px solid #c5bfb5; font-family: 'DM Sans', sans-serif; font-size: 10px; color: #888; text-transform: uppercase; padding: 6px 10px; cursor: pointer; }
+
+    .right-panel { background: #e8e3da; border-left: 2px solid #1a1a1a; display: flex; flex-direction: column; overflow-y: auto; }
+    .right-panel-section { padding: 12px 14px; border-bottom: 2px solid #1a1a1a; }
+    .right-panel-section:last-child { border-bottom: none; }
+    .right-panel-title { font-size: 10px; font-weight: 700; color: #1a1a1a; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; border-bottom: 2px solid #1a1a1a; padding-bottom: 5px; }
+    .popular-feed-item { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer; }
+    .popular-feed-item:last-child { margin-bottom: 0; }
+    .popular-feed-info { flex: 1; min-width: 0; }
+    .popular-feed-name { font-size: 11px; font-weight: 700; color: #1a1a1a; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .popular-feed-followers { font-size: 9px; color: #aaa; text-transform: uppercase; margin-top: 1px; }
+    .following-post-item { padding: 10px 20px; border-bottom: 1px solid #d5cfc5; cursor: pointer; }
+    .following-post-item:hover { background: #ddd8cf; }
+    .following-post-item:last-child { border-bottom: none; }
+    .following-post-handle { font-size: 9px; color: #ff4d1c; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 3px; }
+    .following-post-preview { font-size: 11px; color: #555; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .following-post-subject { font-size: 10px; font-weight: 700; color: #1a1a1a; text-transform: uppercase; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .loading { position: fixed; inset: 0; background: #1a1a1a; display: flex; align-items: center; justify-content: center; z-index: 300; }
+    .loading-logo { font-size: 52px; font-weight: 700; color: #fff; text-transform: lowercase; letter-spacing: -0.04em; }
+    .loading-logo .o { color: #ff4d1c; }
+    /* AUTH */
+    .auth-overlay { position: fixed; inset: 0; z-index: 200; display: flex; }
+    .auth-left { width: 42%; background: #1a1a1a; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 30px; flex-shrink: 0; }
+    .auth-logo { font-size: 56px; font-weight: 700; color: #fff; text-transform: lowercase; letter-spacing: -0.04em; line-height: 1; margin-bottom: 14px; }
+    .auth-logo .o { color: #ff4d1c; }
+    .auth-tagline { font-size: 9px; color: #555; text-transform: uppercase; letter-spacing: 0.14em; font-weight: 500; text-align: center; line-height: 2; }
+    .auth-right { flex: 1; background: #f0ede6; display: flex; flex-direction: column; justify-content: center; padding: 40px; overflow-y: auto; }
+    .auth-view { display: none; } .auth-view.active { display: block; }
+    .auth-title { font-size: 16px; font-weight: 700; color: #1a1a1a; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+    .auth-sub { font-size: 10px; color: #aaa; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 28px; line-height: 1.6; }
+    .auth-field { margin-bottom: 18px; }
+    .auth-label { font-size: 9px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 6px; }
+    .auth-input { width: 100%; border: none; border-bottom: 2px solid #1a1a1a; background: transparent; font-family: 'DM Sans', sans-serif; font-size: 15px; color: #1a1a1a; padding: 6px 0; outline: none; }
+    .auth-input:focus { border-bottom-color: #ff4d1c; }
+    .auth-input::placeholder { color: #ccc; font-size: 13px; }
+    .auth-input.err { border-bottom-color: #cc3300; }
+    .auth-hint { font-size: 9px; color: #aaa; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 4px; }
+    .auth-error { font-size: 9px; color: #cc3300; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 4px; display: none; }
+    .auth-error.show { display: block; }
+    .btn-auth { width: 100%; background: #ff4d1c; color: #fff; border: none; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; padding: 13px; cursor: pointer; margin-top: 6px; }
+    .btn-auth:hover { background: #e03d10; }
+    .btn-auth:disabled { background: #c5bfb5; cursor: not-allowed; }
+    .auth-switch { margin-top: 18px; font-size: 10px; color: #aaa; text-transform: uppercase; letter-spacing: 0.06em; text-align: center; }
+    .auth-switch a { color: #ff4d1c; cursor: pointer; font-weight: 700; }
+    .settings-section { padding: 16px 20px; border-bottom: 2px solid #1a1a1a; }
+    .settings-section-title { font-size: 11px; font-weight: 700; color: #1a1a1a; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+    .settings-section-title i { font-size: 15px; color: #ff4d1c; }
+    .toggle { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider { position: absolute; cursor: pointer; inset: 0; background: #c5bfb5; transition: 0.2s; border-radius: 20px; }
+    .toggle-slider:before { content: ''; position: absolute; height: 14px; width: 14px; left: 3px; bottom: 3px; background: #fff; transition: 0.2s; border-radius: 50%; }
+    .toggle input:checked + .toggle-slider { background: #ff4d1c; }
+    .toggle input:checked + .toggle-slider:before { transform: translateX(16px); }
+    .toggle-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .toggle-label { font-size: 11px; color: #555; text-transform: uppercase; flex: 1; }
+    .toggle-desc { font-size: 10px; color: #aaa; margin-top: 1px; }
+  </style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="loading" id="loading">
+  <div class="loading-logo">ech<span class="o">o</span></div>
+</div>
+
+<!-- AUTH -->
+<div class="auth-overlay" id="auth-overlay" style="display:none">
+  <div class="auth-left">
+    <div class="auth-logo">ech<span class="o">o</span></div>
+    <div class="auth-tagline">let the thunder of your voice<br>leave an everlasting echo.</div>
+  </div>
+  <div class="auth-right">
+    <div class="auth-view active" id="auth-signup">
+      <div class="auth-title">Create your account</div>
+      <div class="auth-sub">Your journal is anonymous. Your username is invented — your story is truth.</div>
+      <div class="auth-field">
+        <div class="auth-label">Email address *</div>
+        <input class="auth-input" id="su-email" type="email" placeholder="your@email.com" />
+        <div class="auth-error" id="err-email"></div>
+      </div>
+      <div class="auth-field">
+        <div class="auth-label">Username *</div>
+        <input class="auth-input" id="su-username" type="text" placeholder="e.g. brokenwings99" maxlength="30" oninput="previewHandle()" />
+        <div class="auth-hint" id="handle-preview">Your handle: @yourname</div>
+        <div class="auth-error" id="err-username"></div>
+      </div>
+      <div class="auth-field">
+        <div class="auth-label">Password *</div>
+        <input class="auth-input" id="su-password" type="password" placeholder="At least 8 characters" />
+        <div class="auth-error" id="err-password"></div>
+      </div>
+      <button class="btn-auth" id="btn-signup" onclick="submitSignup()">Create account</button>
+      <div class="auth-switch">Already have an account? <a onclick="switchAuth('login')">Sign in</a></div>
+    </div>
+    <div class="auth-view" id="auth-login">
+      <div class="auth-title">Welcome back</div>
+      <div class="auth-sub">Sign in to continue your story.</div>
+      <div class="auth-field">
+        <div class="auth-label">Email address *</div>
+        <input class="auth-input" id="li-email" type="email" placeholder="your@email.com" />
+        <div class="auth-error" id="err-li-email"></div>
+      </div>
+      <div class="auth-field">
+        <div class="auth-label">Password *</div>
+        <input class="auth-input" id="li-password" type="password" placeholder="Your password" />
+        <div class="auth-error" id="err-li-password"></div>
+      </div>
+      <button class="btn-auth" id="btn-login" onclick="submitLogin()">Sign in</button>
+      <div class="auth-switch">New to echo? <a onclick="switchAuth('signup')">Create an account</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div class="app" id="main-app" style="display:none">
+  <div class="app-header">
+    <div class="header-logo-line">
+      
+      <span class="header-logo">ech<span class="o">o</span></span>
+    </div>
+    <button class="btn-signout" onclick="signOut()">Sign out</button>
+  </div>
+
+  <div class="sidebar">
+    <div class="nav-item active" id="nav-feed" onclick="showView('feed')"><i class="ti ti-flame"></i>Feed</div>
+    <div class="nav-item" id="nav-following" onclick="showView('following')"><i class="ti ti-users"></i>Following</div>
+    <div class="nav-item" id="nav-bookmarks" onclick="showView('bookmarks')"><i class="ti ti-bookmark"></i>Saved</div>
+    <div class="nav-item" id="nav-dm" onclick="showView('dm')"><i class="ti ti-message-2"></i>Messages</div>
+    <div class="nav-item" id="nav-journal" onclick="showView('journal')"><i class="ti ti-writing"></i>My Journal</div>
+    <div class="nav-item" id="nav-settings" onclick="showView('settings')"><i class="ti ti-settings"></i>Settings</div>
+    <div class="sidebar-profile">
+      <div class="avatar av-you" id="sidebar-av">–</div>
+      <div><div class="profile-name" id="sidebar-name">–</div><div class="profile-handle" id="sidebar-handle">–</div></div>
+    </div>
+    <div class="sidebar-panel">
+      <div class="panel-title">Search by tag</div>
+      <input class="search-box" placeholder="Search tags…" oninput="filterTags(this.value)" />
+      <div class="tag-cloud" id="tag-cloud"></div>
+    </div>
+  </div>
+
+  <div class="feed" id="main-area">
+    <div class="motto-bar">
+      <div class="motto" id="motto-text">tell your true story.</div>
+      <div class="feed-tabs" id="feed-tabs" style="display:none">
+        <div class="feed-tab active" id="tab-all" onclick="switchFeedTab('all')">All</div>
+        <div class="feed-tab" id="tab-following" onclick="switchFeedTab('following')">Following</div>
+      </div>
+    </div>
+
+    <div id="view-feed" class="view active">
+      <div class="compose">
+        <div class="compose-username" id="compose-handle-label">–</div>
+        <div class="compose-meta-row">
+          <div class="meta-field-wrap"><div class="meta-field" id="compose-subject" contenteditable="true" data-placeholder="Subject (optional)"></div></div>
+          <div class="meta-field-wrap"><div class="meta-field" id="compose-location" contenteditable="true" data-placeholder="Location (optional)"></div></div>
+        </div>
+        <div class="compose-body-wrap">
+          <div class="compose-placeholder" id="compose-ph">What changed <span class="ph-in-group">(<em>in</em>)</span> your life today?</div>
+          <textarea class="compose-body" id="compose-text" oninput="handleBodyInput()"></textarea>
+        </div>
+        <div class="tag-picker-label">Tags</div>
+        <div class="tag-row-1" id="tag-row-1"></div>
+        <div class="tag-drawer" id="tag-drawer"></div>
+        <div class="tag-custom-row">
+          <input class="tag-custom-input" id="custom-tag-input" placeholder="Add your own tag…" maxlength="30" onkeydown="if(event.key==='Enter'){event.preventDefault();addCustomTag();}" />
+          <button class="tag-ellipsis-btn" onclick="addCustomTag()" style="border-color:#c5bfb5;color:#888">+ Add</button>
+        </div>
+        <div class="compose-footer">
+          <span class="compose-ts" id="compose-ts"></span>
+          <button class="btn-publish" onclick="submitPost()">Publish</button>
+        </div>
+      </div>
+      <div id="posts-container"></div>
+
+      <!-- Following new posts section -->
+      <div style="border-top:2px solid #1a1a1a;background:#e8e3da;">
+        <div style="padding:10px 20px;border-bottom:1px solid #d5cfc5;display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:10px;font-weight:700;color:#1a1a1a;text-transform:uppercase;letter-spacing:0.1em;">Following — New</div>
+        </div>
+        <div id="following-new-list" style="padding:0 0 4px 0;"><div style="padding:12px 20px;font-size:10px;color:#aaa;text-transform:uppercase;">Follow users to see new posts here.</div></div>
+      </div>
+    </div>
+
+    <div id="view-following" class="view">
+      <div style="padding:12px 20px;border-bottom:2px solid #1a1a1a;background:#f0ede6;font-size:12px;font-weight:700;color:#1a1a1a;text-transform:uppercase;">Following Feed</div>
+      <div id="following-container"></div>
+    </div>
+
+    <div id="view-bookmarks" class="view">
+      <div style="padding:12px 20px;border-bottom:2px solid #1a1a1a;background:#f0ede6;font-size:12px;font-weight:700;color:#1a1a1a;text-transform:uppercase;">Saved Entries</div>
+      <div id="bookmarks-container"></div>
+    </div>
+
+    <div id="view-dm" class="view">
+      <div class="dm-wrap">
+        <div class="dm-inbox" id="dm-inbox">
+          <div class="dm-header"><div class="dm-title">Messages</div></div>
+          <div class="dm-new-btn"><button class="btn-new-dm" onclick="openNewDMModal()">+ New Message</button></div>
+          <div class="dm-list" id="dm-thread-list"></div>
+        </div>
+        <div class="dm-convo" id="dm-convo">
+          <div class="dm-convo-header">
+            <button class="dm-back" onclick="closeDMConvo()">← Back</button>
+            <div class="dm-convo-name" id="dm-convo-name"></div>
+          </div>
+          <div class="dm-messages" id="dm-messages"></div>
+          <div class="dm-input-row">
+            <input class="dm-input" id="dm-input" placeholder="Write a message…" onkeydown="if(event.key==='Enter'){event.preventDefault();sendDM();}" />
+            <button class="btn-dm-send" onclick="sendDM()">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="view-journal" class="view">
+      <div style="padding:12px 20px;border-bottom:2px solid #1a1a1a;background:#f0ede6;display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-size:13px;font-weight:700;color:#1a1a1a;text-transform:uppercase;" id="journal-title">My Journal</div>
+      </div>
+      <div id="story-title-banner" style="display:none;padding:14px 20px;border-bottom:2px solid #1a1a1a;background:#1a1a1a;">
+        <div style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px;">Story title</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <div style="font-size:18px;font-weight:700;color:#fff;" id="story-title-display"></div>
+          <button onclick="editStoryTitle()" style="background:none;border:1.5px solid #555;color:#aaa;font-family:'DM Sans',sans-serif;font-size:9px;text-transform:uppercase;padding:3px 10px;cursor:pointer;white-space:nowrap;flex-shrink:0;">Edit</button>
+        </div>
+      </div>
+      <div id="no-title-banner" style="display:none;padding:12px 20px;border-bottom:1px solid #d5cfc5;background:#f0ede6;">
+        <button onclick="promptStoryTitle()" style="background:none;border:1.5px solid #c5bfb5;color:#888;font-family:'DM Sans',sans-serif;font-size:10px;text-transform:uppercase;padding:5px 14px;cursor:pointer;letter-spacing:0.06em;">+ Add a title to your story</button>
+      </div>
+      <div id="journal-posts"></div>
+    </div>
+
+    <div id="view-settings" class="view">
+      <div style="padding:12px 20px;border-bottom:2px solid #1a1a1a;background:#f0ede6;font-size:12px;font-weight:700;color:#1a1a1a;text-transform:uppercase;">Settings</div>
+      <div class="settings-section">
+        <div class="settings-section-title"><i class="ti ti-bell"></i>Notifications</div>
+        <div class="toggle-row"><label class="toggle"><input type="checkbox" id="toggle-dm" checked /><span class="toggle-slider"></span></label><div><div class="toggle-label">Direct messages</div><div class="toggle-desc">When you receive a new message</div></div></div>
+        <div class="toggle-row"><label class="toggle"><input type="checkbox" id="toggle-likes" /><span class="toggle-slider"></span></label><div><div class="toggle-label">Likes on my entries</div><div class="toggle-desc">When someone likes your entry</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel" id="right-panel">
+    <div class="right-panel-section" style="flex:1">
+      <div class="right-panel-title">Popular Feeds</div>
+      <div id="popular-feeds-list"><div style="font-size:10px;color:#aaa;text-transform:uppercase;">Loading…</div></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Story title modal -->
+<div class="modal-overlay" id="title-modal">
+  <div class="modal">
+    <div class="modal-title">Name your story</div>
+    <p style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:16px;line-height:1.6;">Before your first entry goes live, give your story a title. You can change it any time.</p>
+    <input style="width:100%;border:none;border-bottom:2px solid #1a1a1a;background:transparent;font-family:'DM Sans',sans-serif;font-size:16px;color:#1a1a1a;padding:6px 0;outline:none;margin-bottom:6px;" id="story-title-input" placeholder="e.g. The years I lost and found" maxlength="80" />
+    <div style="font-size:9px;color:#cc3300;text-transform:uppercase;margin-bottom:4px;" id="story-title-err"></div>
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="skipStoryTitle()">Skip for now</button>
+      <button class="btn-modal-confirm" onclick="saveStoryTitle()">Save &amp; Publish</button>
+    </div>
+  </div>
+</div>
+
+<!-- New DM modal -->
+<div class="modal-overlay" id="new-dm-modal">
+  <div class="modal">
+    <div class="modal-title">New Message</div>
+    <input style="width:100%;border:1.5px solid #c5bfb5;background:#ebe7df;font-family:'DM Sans',sans-serif;font-size:12px;color:#1a1a1a;padding:6px 8px;outline:none;margin-bottom:10px;" id="new-dm-handle" placeholder="@handle" />
+    <input style="width:100%;border:1.5px solid #c5bfb5;background:#ebe7df;font-family:'DM Sans',sans-serif;font-size:12px;color:#1a1a1a;padding:6px 8px;outline:none;margin-bottom:10px;" id="new-dm-msg" placeholder="Write your message…" />
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="document.getElementById('new-dm-modal').classList.remove('open')">Cancel</button>
+      <button class="btn-modal-confirm" onclick="confirmNewDM()">Send</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://hgsbzznejovggpqpqwap.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhnc2J6em5lam92Z2dwcXBxd2FwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNzg4NTcsImV4cCI6MjA5NDc1NDg1N30.xf0Eo-FZYs4YN44VG-I3iPIs2C0oJjrfxAXYU9gSFTs';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let ME = null; // current user profile
+let currentDMUser = null;
+let followedUsers = new Set();
+let bookmarkedIds = new Set();
+let selectedTags = new Set();
+let drawerOpen = false;
+let activeFeedTab = 'all';
+
+const ROW1_TAGS = ['grief','love','family'];
+const BASE_TAGS = ['grief','love','family','identity','addiction','trauma','joy','faith','loss','friendship','work','childhood','marriage','mental health','travel','illness','money','secrets','forgiveness','loneliness'];
+let allTags = [...BASE_TAGS];
+
+// INIT
+window.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    document.getElementById('loading').style.display = 'none';
+    if (session) {
+      await loadProfile(session.user.id);
+      showApp();
+    } else {
+      document.getElementById('auth-overlay').style.display = 'flex';
+    }
+  } catch(e) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('auth-overlay').style.display = 'flex';
+    console.error('Init error:', e);
+  }
+});
+
+sb.auth.onAuthStateChange(async (event, session) => {
+  if (event === 'SIGNED_IN' && session) {
+    await loadProfile(session.user.id);
+    showApp();
+  } else if (event === 'SIGNED_OUT') {
+    location.reload();
+  }
+});
+
+async function loadProfile(userId) {
+  const { data } = await sb.from('profiles').select('*').eq('id', userId).single();
+  if (data) {
+    ME = data;
+    updateSidebarProfile();
+  }
+}
+
+function updateSidebarProfile() {
+  if (!ME) return;
+  document.getElementById('sidebar-name').textContent = ME.username;
+  document.getElementById('sidebar-handle').textContent = '@' + ME.username;
+  document.getElementById('sidebar-av').textContent = ME.username.slice(0,2).toUpperCase();
+  document.getElementById('compose-handle-label').textContent = '@' + ME.username;
+  document.getElementById('journal-title').textContent = 'My Journal — @' + ME.username;
+}
+
+function showApp() {
+  document.getElementById('auth-overlay').style.display = 'none';
+  document.getElementById('main-app').style.display = 'grid';
+  renderTagPicker();
+  renderTagCloud();
+  document.getElementById('compose-ts').textContent = nowStamp();
+  document.getElementById('feed-tabs').style.display = 'flex';
+  loadPosts();
+  loadRightPanel();
+  loadTagsFromDB();
+}
+
+// AUTH
+function switchAuth(mode) {
+  document.querySelectorAll('.auth-view').forEach(el => el.classList.remove('active'));
+  document.getElementById('auth-' + mode).classList.add('active');
+}
+
+function previewHandle() {
+  const val = document.getElementById('su-username').value.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+  document.getElementById('handle-preview').textContent = val ? 'Your handle: @' + val : 'Your handle: @yourname';
+}
+
+function showErr(id, msg) {
+  const el = document.getElementById(id);
+  if (el) { el.textContent = msg; el.classList.add('show'); }
+}
+function clearErrs(...ids) { ids.forEach(id => { const el = document.getElementById(id); if(el) el.classList.remove('show'); }); }
+
+async function submitSignup() {
+  const email = document.getElementById('su-email').value.trim();
+  const username = document.getElementById('su-username').value.trim().toLowerCase().replace(/[^a-z0-9_]/g,'');
+  const password = document.getElementById('su-password').value;
+  const btn = document.getElementById('btn-signup');
+  clearErrs('err-email','err-username','err-password');
+
+  let ok = true;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showErr('err-email','Please enter a valid email address'); ok=false; }
+  if (!username) { showErr('err-username','Letters, numbers and underscores only'); ok=false; }
+  if (password.length < 8) { showErr('err-password','Password must be at least 8 characters'); ok=false; }
+  if (!ok) return;
+
+  btn.disabled = true; btn.textContent = 'Checking…';
+
+  try {
+    // Check username uniqueness
+    const { data: existing, error: checkErr } = await sb.from('profiles').select('id').eq('username', username).maybeSingle();
+    if (checkErr) throw checkErr;
+    if (existing) {
+      showErr('err-username','That username is already taken — try another');
+      btn.disabled = false; btn.textContent = 'Create account';
+      return;
+    }
+
+    btn.textContent = 'Creating account…';
+    const { data, error } = await sb.auth.signUp({ email, password });
+    if (error) throw error;
+
+    // Create profile
+    const { error: profileErr } = await sb.from('profiles').insert({ id: data.user.id, username });
+    if (profileErr) throw profileErr;
+
+    showToast('Welcome to echo, @' + username);
+  } catch(e) {
+    showErr('err-email', e.message || 'Something went wrong — please try again');
+    btn.disabled = false; btn.textContent = 'Create account';
+  }
+}
+
+async function submitLogin() {
+  const email = document.getElementById('li-email').value.trim();
+  const password = document.getElementById('li-password').value;
+  clearErrs('err-li-email','err-li-password');
+  let ok = true;
+  if (!email) { showErr('err-li-email','Please enter your email'); ok=false; }
+  if (!password) { showErr('err-li-password','Please enter your password'); ok=false; }
+  if (!ok) return;
+
+  const btn = document.getElementById('btn-login');
+  btn.disabled = true; btn.textContent = 'Signing in…';
+
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) { showErr('err-li-email', error.message); btn.disabled=false; btn.textContent='Sign in'; }
+}
+
+async function signOut() {
+  await sb.auth.signOut();
+}
+
+// VIEWS
+function showView(v) {
+  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('nav-'+v)?.classList.add('active');
+  document.getElementById('feed-tabs').style.display = 'none';
+  const mottos = {feed:'tell your true story.',bookmarks:'your saved entries.',following:'writers you follow.',dm:'messages.',journal:'your journal.',settings:'settings.'};
+  document.getElementById('motto-text').textContent = mottos[v] || 'tell your true story.';
+  if (v==='feed') { document.getElementById('feed-tabs').style.display='flex'; loadPosts(); }
+  if (v==='bookmarks') loadBookmarks();
+  if (v==='following') loadFollowingFeed();
+  if (v==='journal') loadJournal();
+  if (v==='dm') { document.getElementById('dm-inbox').style.display='flex'; document.getElementById('dm-convo').classList.remove('open'); loadDMInbox(); }
+  currentDMUser = null;
+}
+
+function switchFeedTab(tab) {
+  activeFeedTab = tab;
+  document.getElementById('tab-all').classList.toggle('active', tab==='all');
+  document.getElementById('tab-following').classList.toggle('active', tab==='following');
+  loadPosts();
+}
+
+// POSTS
+async function loadPosts() {
+  const c = document.getElementById('posts-container');
+  c.innerHTML = '<div class="empty-state">Loading…</div>';
+  let query = sb.from('posts').select('*, profiles(username)').order('created_at', {ascending: false});
+  if (activeFeedTab === 'following' && followedUsers.size > 0) {
+    query = query.in('handle', [...followedUsers].map(h => h.replace('@','')));
+  } else if (activeFeedTab === 'following') {
+    c.innerHTML = '<div class="empty-state">Follow writers to see their entries here.</div>';
+    return;
+  }
+  const { data, error } = await query;
+  c.innerHTML = '';
+  if (error || !data?.length) { c.innerHTML = '<div class="empty-state">No entries yet. Be the first to write.</div>'; return; }
+  data.forEach(p => renderPost(p, c));
+}
+
+let pendingPost = null;
+
+async function submitPost() {
+  const text = document.getElementById('compose-text').value.trim();
+  if (!text) return;
+  const subject = document.getElementById('compose-subject').innerText.trim();
+  const location = document.getElementById('compose-location').innerText.trim();
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return;
+
+  // Get entry count for this user
+  const { count } = await sb.from('posts').select('*', {count:'exact',head:true}).eq('user_id', session.user.id);
+
+  // If first post and no story title yet, show title modal first
+  if ((count === 0) && !ME.title) {
+    pendingPost = { subject, location, text, tags: [...selectedTags] };
+    document.getElementById('story-title-input').value = '';
+    document.getElementById('story-title-err').textContent = '';
+    document.getElementById('title-modal').classList.add('open');
+    return;
+  }
+
+  await doPublishPost({ subject, location, text, tags: [...selectedTags], count });
+}
+
+async function doPublishPost({ subject, location, text, tags, count }) {
+  const { data: { session } } = await sb.auth.getSession();
+  const { data, error } = await sb.from('posts').insert({
+    user_id: session.user.id,
+    handle: ME.username,
+    subject, location, body: text,
+    tags,
+    entry_num: (count || 0) + 1
+  }).select().single();
+
+  if (error) { showToast('Error publishing — try again'); return; }
+
+  document.getElementById('compose-text').value = '';
+  document.getElementById('compose-subject').innerText = '';
+  document.getElementById('compose-location').innerText = '';
+  document.getElementById('compose-ph').style.display = 'flex';
+  selectedTags.clear(); drawerOpen = false; renderTagPicker();
+
+  const c = document.getElementById('posts-container');
+  renderPost(data, c, true);
+  showToast('Entry published');
+}
+
+async function saveStoryTitle() {
+  const title = document.getElementById('story-title-input').value.trim();
+  if (!title) { document.getElementById('story-title-err').textContent = 'Please enter a title'; return; }
+  const { data: { session } } = await sb.auth.getSession();
+  await sb.from('profiles').update({ title }).eq('id', session.user.id);
+  ME.title = title;
+  document.getElementById('title-modal').classList.remove('open');
+  if (pendingPost) {
+    const { count } = await sb.from('posts').select('*', {count:'exact',head:true}).eq('user_id', session.user.id);
+    await doPublishPost({ ...pendingPost, count });
+    pendingPost = null;
+  }
+}
+
+async function skipStoryTitle() {
+  document.getElementById('title-modal').classList.remove('open');
+  if (pendingPost) {
+    const { data: { session } } = await sb.auth.getSession();
+    const { count } = await sb.from('posts').select('*', {count:'exact',head:true}).eq('user_id', session.user.id);
+    await doPublishPost({ ...pendingPost, count });
+    pendingPost = null;
+  }
+}
+
+function promptStoryTitle() {
+  document.getElementById('story-title-input').value = ME.title || '';
+  document.getElementById('story-title-err').textContent = '';
+  document.getElementById('title-modal').classList.add('open');
+}
+
+async function editStoryTitle() {
+  document.getElementById('story-title-input').value = ME.title || '';
+  document.getElementById('story-title-err').textContent = '';
+  document.getElementById('title-modal').classList.add('open');
+}
+
+function renderPost(p, container, prepend=false) {
+  const isOwner = ME && p.handle === ME.username;
+  const isBookmarked = bookmarkedIds.has(p.id);
+  const el = document.createElement('div');
+  el.className = 'post' + (prepend ? ' new-post-anim' : '');
+  el.id = `post-${p.id}`;
+  const locStr = p.location ? ` — ${p.location}` : '';
+  const subHTML = p.subject ? `<div class="post-subject">${p.subject}</div>` : '';
+  const tagsHTML = p.tags?.length ? `<div class="post-tags">${p.tags.map(t=>`<span class="post-tag">${t}</span>`).join('')}</div>` : '';
+  const ts = new Date(p.created_at).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
+  const likeBtn = `<button class="action-btn like-btn" onclick="toggleLike(${p.id},this)"><i class="ti ti-heart"></i> <span>${p.likes||0}</span></button>`;
+  const commentBtn = `<button class="action-btn" onclick="toggleComments(${p.id})"><i class="ti ti-message-circle"></i> <span>${p.comment_count||0}</span></button>`;
+  const bookmarkBtn = `<button class="action-btn bookmark-btn${isBookmarked?' bookmarked':''}" onclick="toggleBookmark(${p.id},this)"><i class="ti ti-bookmark"></i></button>`;
+  const dmBtn = !isOwner ? `<button class="action-btn dm-btn" onclick="openDMFromPost('${p.handle}')"><i class="ti ti-message-2"></i></button>` : '';
+  let right = isOwner
+    ? `<div class="post-owner-actions"><button class="owner-btn" onclick="editPost(${p.id})">Edit</button><button class="owner-btn delete" onclick="deletePost(${p.id})">Delete</button></div>`
+    : `<div class="post-owner-actions"><button class="owner-btn follow-btn" onclick="toggleFollow('${p.handle}',this)">Follow</button></div>`;
+  el.innerHTML = `<div class="post-accent"></div><div class="post-meta"><span>entry #${p.entry_num||'–'}</span><span class="post-meta-sep">·</span><span class="post-meta-handle">@${p.handle}</span><span class="post-meta-sep">·</span><span>${ts}${locStr}</span></div>${subHTML}<div class="post-body" id="pbody-${p.id}">${p.body}</div>${tagsHTML}<div class="post-actions">${likeBtn}${commentBtn}${bookmarkBtn}${dmBtn}${right}</div><div class="comments-section" id="comments-${p.id}"><div id="clist-${p.id}"></div><div class="comment-input-wrap"><textarea class="c-textarea" id="cinput-${p.id}" placeholder="Write a response…" rows="1"></textarea><div class="c-footer"><span class="c-ts">${nowStamp()}</span><button class="btn-cancel-c" onclick="toggleComments(${p.id})">Cancel</button><button class="btn-reply" onclick="submitComment(${p.id})">Reply</button></div></div></div>`;
+  if (prepend) container.insertBefore(el, container.firstChild);
+  else container.appendChild(el);
+}
+
+async function toggleLike(postId, btn) {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return;
+  const { data: existing } = await sb.from('likes').select('*').eq('user_id', session.user.id).eq('post_id', postId).maybeSingle();
+  if (existing) {
+    await sb.from('likes').delete().eq('user_id', session.user.id).eq('post_id', postId);
+    await sb.from('posts').update({likes: (existing.likes||1)-1}).eq('id', postId);
+    btn.classList.remove('liked');
+  } else {
+    await sb.from('likes').insert({user_id: session.user.id, post_id: postId});
+    btn.classList.add('liked');
+  }
+  const { data: p } = await sb.from('posts').select('likes').eq('id', postId).single();
+  if (p) btn.querySelector('span').textContent = p.likes || 0;
+}
+
+async function toggleBookmark(postId, btn) {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return;
+  if (bookmarkedIds.has(postId)) {
+    await sb.from('bookmarks').delete().eq('user_id', session.user.id).eq('post_id', postId);
+    bookmarkedIds.delete(postId);
+    btn.classList.remove('bookmarked');
+    showToast('Removed from Saved');
+  } else {
+    await sb.from('bookmarks').insert({user_id: session.user.id, post_id: postId});
+    bookmarkedIds.add(postId);
+    btn.classList.add('bookmarked');
+    showToast('Entry saved');
+  }
+}
+
+async function toggleFollow(handle, btn) {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return;
+  const { data: target } = await sb.from('profiles').select('id').eq('username', handle).single();
+  if (!target) return;
+  if (followedUsers.has('@'+handle)) {
+    await sb.from('follows').delete().eq('follower_id', session.user.id).eq('following_id', target.id);
+    followedUsers.delete('@'+handle);
+    btn.textContent = 'Follow'; btn.classList.remove('on');
+    showToast('Unfollowed @'+handle);
+  } else {
+    await sb.from('follows').insert({follower_id: session.user.id, following_id: target.id});
+    followedUsers.add('@'+handle);
+    btn.textContent = 'Following'; btn.classList.add('on');
+    showToast('Following @'+handle);
+  }
+}
+
+function toggleComments(id) {
+  const s = document.getElementById('comments-'+id);
+  if (s) { s.classList.toggle('open'); if(s.classList.contains('open')) loadComments(id); }
+}
+
+async function loadComments(postId) {
+  const list = document.getElementById('clist-'+postId);
+  const { data } = await sb.from('comments').select('*').eq('post_id', postId).order('created_at');
+  list.innerHTML = '';
+  (data||[]).forEach(c => {
+    const d = document.createElement('div');
+    d.className = 'comment';
+    const auth = c.handle ? `<span class="handle-pill">@${c.handle}</span>` : `<span class="anon-label">anonymous</span>`;
+    const cts = c.created_at ? new Date(c.created_at).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'}) : '';
+    d.innerHTML = `<div class="avatar av-a" style="font-size:9px">${c.handle ? c.handle.slice(0,2).toUpperCase() : '?'}</div><div class="comment-content"><div class="comment-author">${auth}</div><div class="comment-text">${c.body}</div>${cts ? `<div style="font-size:9px;color:#bbb;text-transform:uppercase;letter-spacing:0.06em;margin-top:4px;">${cts}</div>` : ''}</div>`;
+    list.appendChild(d);
+  });
+}
+
+async function submitComment(postId) {
+  const ta = document.getElementById('cinput-'+postId);
+  if (!ta || !ta.value.trim()) return;
+  const { data: { session } } = await sb.auth.getSession();
+  await sb.from('comments').insert({post_id: postId, user_id: session?.user?.id || null, handle: ME?.username || null, mode: ME ? 'handle' : 'anon', body: ta.value.trim()});
+  await sb.from('posts').update({comment_count: (document.querySelector(`#post-${postId} .cc-${postId}`)?.textContent|0)+1}).eq('id', postId);
+  ta.value = '';
+  loadComments(postId);
+}
+
+async function editPost(id) {
+  const el = document.getElementById('pbody-'+id);
+  const { data: p } = await sb.from('posts').select('body').eq('id', id).single();
+  el.innerHTML = `<textarea class="edit-body" id="edit-ta-${id}">${p.body}</textarea><div class="edit-actions"><button class="btn-save-edit" onclick="saveEdit(${id})">Save</button><button class="btn-cancel-edit" onclick="cancelEdit(${id},'${p.body.replace(/'/g,"\\'")}')">Cancel</button></div>`;
+}
+async function saveEdit(id) {
+  const v = document.getElementById('edit-ta-'+id)?.value.trim();
+  if (!v) return;
+  await sb.from('posts').update({body: v}).eq('id', id);
+  document.getElementById('pbody-'+id).innerHTML = v;
+  showToast('Entry updated');
+}
+function cancelEdit(id, orig) { document.getElementById('pbody-'+id).innerHTML = orig; }
+
+async function deletePost(id) {
+  if (!confirm('Delete this entry permanently?')) return;
+  await sb.from('posts').delete().eq('id', id);
+  document.getElementById('post-'+id)?.remove();
+  showToast('Entry deleted');
+}
+
+async function loadBookmarks() {
+  const c = document.getElementById('bookmarks-container');
+  c.innerHTML = '<div class="empty-state">Loading…</div>';
+  const { data: { session } } = await sb.auth.getSession();
+  const { data } = await sb.from('bookmarks').select('post_id, posts(*)').eq('user_id', session.user.id);
+  c.innerHTML = '';
+  if (!data?.length) { c.innerHTML = '<div class="empty-state">No saved entries yet.</div>'; return; }
+  data.forEach(b => renderPost(b.posts, c));
+}
+
+async function loadFollowingFeed() {
+  const c = document.getElementById('following-container');
+  c.innerHTML = '<div class="empty-state">Loading…</div>';
+  if (!followedUsers.size) { c.innerHTML = '<div class="empty-state">Follow writers to see their entries here.</div>'; return; }
+  const handles = [...followedUsers].map(h => h.replace('@',''));
+  const { data } = await sb.from('posts').select('*').in('handle', handles).order('created_at', {ascending:false});
+  c.innerHTML = '';
+  if (!data?.length) { c.innerHTML = '<div class="empty-state">No entries from writers you follow yet.</div>'; return; }
+  data.forEach(p => renderPost(p, c));
+}
+
+async function loadJournal() {
+  const c = document.getElementById('journal-posts');
+  c.innerHTML = '<div class="empty-state">Loading…</div>';
+
+  // Load fresh profile to get latest title
+  const { data: { session } } = await sb.auth.getSession();
+  const { data: profile } = await sb.from('profiles').select('title').eq('id', session.user.id).single();
+  if (profile) ME.title = profile.title;
+
+  // Show title banner
+  const titleBanner = document.getElementById('story-title-banner');
+  const noTitleBanner = document.getElementById('no-title-banner');
+  if (ME.title) {
+    document.getElementById('story-title-display').textContent = ME.title;
+    titleBanner.style.display = 'block';
+    noTitleBanner.style.display = 'none';
+  } else {
+    titleBanner.style.display = 'none';
+    noTitleBanner.style.display = 'block';
+  }
+
+  const { data } = await sb.from('posts').select('*').eq('handle', ME.username).order('created_at', {ascending:false});
+  c.innerHTML = '';
+  if (!data?.length) { c.innerHTML = '<div class="empty-state">You haven\'t written any entries yet.</div>'; return; }
+  data.forEach(p => renderPost(p, c));
+}
+
+// DM
+async function loadDMInbox() {
+  const list = document.getElementById('dm-thread-list');
+  list.innerHTML = '';
+  const { data: { session } } = await sb.auth.getSession();
+  const { data } = await sb.from('messages').select('*').or(`sender_id.eq.${session.user.id},receiver_id.eq.${session.user.id}`).order('created_at', {ascending:false});
+  if (!data?.length) { list.innerHTML = '<div class="empty-state">No messages yet.</div>'; return; }
+  const threads = {};
+  for (const m of data) {
+    const otherId = m.sender_id === session.user.id ? m.receiver_id : m.sender_id;
+    if (!threads[otherId]) threads[otherId] = m;
+  }
+  for (const [otherId, msg] of Object.entries(threads)) {
+    const { data: prof } = await sb.from('profiles').select('username').eq('id', otherId).single();
+    if (!prof) continue;
+    const d = document.createElement('div');
+    d.className = 'dm-thread';
+    d.innerHTML = `<div class="avatar av-a" style="font-size:9px">${prof.username.slice(0,2).toUpperCase()}</div><div class="dm-thread-info"><div class="dm-thread-name">@${prof.username}</div><div class="dm-thread-preview">${msg.body}</div></div>`;
+    d.onclick = () => openDMConvo(prof.username);
+    list.appendChild(d);
+  }
+}
+
+async function openDMConvo(handle) {
+  currentDMUser = handle;
+  document.getElementById('dm-inbox').style.display = 'none';
+  document.getElementById('dm-convo').classList.add('open');
+  document.getElementById('dm-convo-name').textContent = '@' + handle;
+  await loadDMMessages(handle);
+}
+
+async function loadDMMessages(handle) {
+  const el = document.getElementById('dm-messages');
+  el.innerHTML = '';
+  const { data: { session } } = await sb.auth.getSession();
+  const { data: other } = await sb.from('profiles').select('id').eq('username', handle).single();
+  if (!other) return;
+  const { data } = await sb.from('messages').select('*').or(`and(sender_id.eq.${session.user.id},receiver_id.eq.${other.id}),and(sender_id.eq.${other.id},receiver_id.eq.${session.user.id})`).order('created_at');
+  (data||[]).forEach(m => {
+    const div = document.createElement('div');
+    div.className = 'dm-msg ' + (m.sender_id === session.user.id ? 'sent' : 'recv');
+    const ts = new Date(m.created_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+    div.innerHTML = `<div class="dm-msg-bubble">${m.body}</div><div class="dm-msg-meta">${ts}</div>`;
+    el.appendChild(div);
+  });
+  el.scrollTop = el.scrollHeight;
+}
+
+function closeDMConvo() {
+  currentDMUser = null;
+  document.getElementById('dm-inbox').style.display = 'flex';
+  document.getElementById('dm-convo').classList.remove('open');
+  loadDMInbox();
+}
+
+async function sendDM() {
+  const input = document.getElementById('dm-input');
+  const text = input.value.trim();
+  if (!text || !currentDMUser) return;
+  const { data: { session } } = await sb.auth.getSession();
+  const { data: other } = await sb.from('profiles').select('id').eq('username', currentDMUser).single();
+  if (!other) { showToast('User not found'); return; }
+  await sb.from('messages').insert({sender_id: session.user.id, receiver_id: other.id, body: text});
+  input.value = '';
+  loadDMMessages(currentDMUser);
+}
+
+function openDMFromPost(handle) {
+  showView('dm');
+  setTimeout(() => openDMConvo(handle), 100);
+}
+
+function openNewDMModal() { document.getElementById('new-dm-modal').classList.add('open'); }
+async function confirmNewDM() {
+  const h = document.getElementById('new-dm-handle').value.trim().replace('@','');
+  const m = document.getElementById('new-dm-msg').value.trim();
+  if (!h || !m) { showToast('Enter a handle and message'); return; }
+  const { data: other } = await sb.from('profiles').select('id').eq('username', h).single();
+  if (!other) { showToast('User @'+h+' not found'); return; }
+  const { data: { session } } = await sb.auth.getSession();
+  await sb.from('messages').insert({sender_id: session.user.id, receiver_id: other.id, body: m});
+  document.getElementById('new-dm-modal').classList.remove('open');
+  document.getElementById('new-dm-handle').value = '';
+  document.getElementById('new-dm-msg').value = '';
+  showView('dm');
+  setTimeout(() => openDMConvo(h), 100);
+}
+
+// TAGS
+function makeTagBtn(tag){const b=document.createElement('button');b.className='tag-opt'+(selectedTags.has(tag)?' selected':'');b.textContent=tag;b.onclick=()=>{selectedTags.has(tag)?selectedTags.delete(tag):selectedTags.add(tag);renderTagPicker();};return b;}
+function renderTagPicker(){const r=document.getElementById('tag-row-1'),d=document.getElementById('tag-drawer');if(!r)return;r.innerHTML='';d.innerHTML='';ROW1_TAGS.forEach(t=>r.appendChild(makeTagBtn(t)));const e=document.createElement('button');e.className='tag-ellipsis-btn';e.textContent=drawerOpen?'▲':'…';e.onclick=()=>{drawerOpen=!drawerOpen;renderTagPicker();};r.appendChild(e);allTags.filter(t=>!ROW1_TAGS.includes(t)).forEach(t=>d.appendChild(makeTagBtn(t)));d.classList.toggle('open',drawerOpen);}
+function addCustomTag(){const i=document.getElementById('custom-tag-input');const v=i.value.trim().toLowerCase();if(!v)return;if(!allTags.includes(v))allTags.push(v);selectedTags.add(v);i.value='';drawerOpen=true;renderTagPicker();}
+function renderTagCloud(f=''){const el=document.getElementById('tag-cloud');if(!el)return;el.innerHTML='';allTags.filter(t=>t.includes(f.toLowerCase())).forEach(tag=>{const b=document.createElement('button');b.className='cloud-tag';b.textContent=tag;b.onclick=()=>{
+  // deactivate all other tags
+  document.querySelectorAll('.cloud-tag').forEach(btn=>btn.classList.remove('active'));
+  if(b.classList.contains('active')){b.classList.remove('active');renderFeed();}
+  else{b.classList.add('active');showView('feed');filterPostsByTag(tag);}
+};el.appendChild(b);});}
+function filterTags(v) {
+  renderTagCloud(v);
+  // Also filter posts by tag if there's a value
+  if (v.trim()) {
+    filterPostsByTag(v.trim().toLowerCase());
+  } else {
+    renderFeed();
+  }
+}
+
+async function filterPostsByTag(tag) {
+  const c = document.getElementById('posts-container');
+  c.innerHTML = '<div class="empty-state">Searching…</div>';
+  const { data } = await sb.from('posts').select('*').contains('tags', [tag]).order('created_at', {ascending: false});
+  c.innerHTML = '';
+  if (!data?.length) { c.innerHTML = '<div class="empty-state">No entries found for that tag.</div>'; return; }
+  data.forEach(p => renderPost(p, c));
+}
+function handleBodyInput(){document.getElementById('compose-ph').style.display=document.getElementById('compose-text').value?'none':'flex';}
+function nowStamp(){return new Date().toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});}
+setInterval(()=>{const e=document.getElementById('compose-ts');if(e)e.textContent=nowStamp();},1000);
+async function loadTagsFromDB() {
+  const { data } = await sb.from('posts').select('tags');
+  if (!data) return;
+  const tagSet = new Set(allTags);
+  data.forEach(p => (p.tags || []).forEach(t => tagSet.add(t)));
+  allTags = [...tagSet];
+  renderTagCloud();
+}
+
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.opacity='1';setTimeout(()=>t.style.opacity='0',2600);}
+
+async function loadRightPanel() {
+  loadPopularFeeds();
+  loadFollowingNew();
+}
+
+async function loadPopularFeeds() {
+  const el = document.getElementById('popular-feeds-list');
+  // Get profiles ordered by follower count
+  let profiles = [];
+  try {
+    const res = await sb.rpc('get_popular_feeds', { limit_count: 5 });
+    if (res.data) profiles = res.data;
+  } catch(e) {}
+
+  // Fallback if rpc fails
+  if (!profiles.length) {
+    const { data } = await sb.from('profiles').select('username, title').limit(5);
+    if (data) profiles = data.map(p => ({...p, follower_count: 0}));
+  }
+
+  if (!profiles.length) { el.innerHTML = '<div style="font-size:10px;color:#aaa;text-transform:uppercase;">No writers yet.</div>'; return; }
+
+  el.innerHTML = '';
+  for (const p of profiles) {
+    // Get most recent post for this user
+    const { data: posts } = await sb.from('posts').select('subject, body, created_at').eq('handle', p.username).order('created_at', {ascending: false}).limit(1);
+    const post = posts?.[0];
+    const preview = post ? post.body.split(' ').slice(0, 30).join(' ') + '…' : '';
+    const postSubject = post?.subject ? `<div style="font-size:10px;font-weight:700;color:#1a1a1a;text-transform:uppercase;margin:4px 0 2px;">${post.subject}</div>` : '';
+
+    const d = document.createElement('div');
+    d.className = 'popular-feed-item';
+    d.style.cssText = 'flex-direction:column;align-items:flex-start;padding-bottom:10px;border-bottom:1px solid #d5cfc5;margin-bottom:10px;';
+    d.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;width:100%;margin-bottom:6px;">
+        <div class="avatar av-b" style="font-size:9px;width:26px;height:26px;flex-shrink:0">${p.username.slice(0,2).toUpperCase()}</div>
+        <div class="popular-feed-info">
+          <div class="popular-feed-name">@${p.username}</div>
+          ${p.title ? `<div style="font-size:9px;color:#888;font-style:italic;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.title}</div>` : ''}
+        </div>
+      </div>
+      ${postSubject}
+      ${preview ? `<div style="font-size:11px;color:#666;line-height:1.5;">${preview}</div>` : ''}
+    `;
+    el.appendChild(d);
+  }
+}
+
+async function loadFollowingNew() {
+  const el = document.getElementById('following-new-list');
+  if (!followedUsers.size) { el.innerHTML = '<div style="font-size:10px;color:#aaa;text-transform:uppercase;">Follow users to see new posts here.</div>'; return; }
+  const handles = [...followedUsers].map(h => h.replace('@',''));
+  const { data } = await sb.from('posts').select('*').in('handle', handles).order('created_at', {ascending:false}).limit(3);
+  if (!data?.length) { el.innerHTML = '<div style="font-size:10px;color:#aaa;text-transform:uppercase;">No new posts yet.</div>'; return; }
+  el.innerHTML = '';
+  data.forEach(p => {
+    const d = document.createElement('div');
+    d.className = 'following-post-item';
+    d.onclick = () => { showView('feed'); setTimeout(() => document.getElementById('post-'+p.id)?.scrollIntoView({behavior:'smooth'}), 300); };
+    const subHTML = p.subject ? `<div class="following-post-subject">${p.subject}</div>` : '';
+    d.innerHTML = `<div class="following-post-handle">@${p.handle}</div>${subHTML}<div class="following-post-preview">${p.body}</div>`;
+    el.appendChild(d);
+  });
+}
+</script>
+</body>
+</html>
