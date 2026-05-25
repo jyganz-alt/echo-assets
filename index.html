@@ -1,25 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <!-- Supabase JS — loaded synchronously so it's available before our init script runs -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
   <script>
-// Load Supabase with fallback
-(function() {
-  var cdns = [
-    'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js',
-    'https://unpkg.com/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js'
-  ];
-  var idx = 0;
-  function loadNext() {
-    if (idx >= cdns.length) return;
-    var s = document.createElement('script');
-    s.src = cdns[idx++];
-    s.onerror = loadNext;
-    document.head.appendChild(s);
-  }
-  loadNext();
-})();
-</script>
-<script>
+// Safety net: if Supabase failed to load (CDN down, network blocked), show a clear message
 window.addEventListener('load', function() {
   if (typeof supabase === 'undefined') {
     document.getElementById('loading').innerHTML = '<div style="color:#ff4d1c;font-family:sans-serif;font-size:14px;text-align:center;padding:20px;">Unable to load required scripts.<br>Please check your internet connection and refresh.</div>';
