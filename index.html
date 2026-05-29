@@ -61,7 +61,7 @@ window.addEventListener('load', function() {
     .compose-username { font-size: 10px; color: #ff4d1c; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; margin-bottom: 6px; }
     .compose-meta-row { display: flex; gap: 16px; margin-bottom: 10px; align-items: center; }
     .meta-field-wrap { flex: 1; display: flex; align-items: center; border-bottom: 1px solid #c5bfb5; }
-    .meta-field { flex: 1; font-family: 'DM Sans', sans-serif; font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 0.08em; outline: none; white-space: nowrap; overflow: hidden; min-width: 10px; }
+    .meta-field { flex: 1; font-family: 'DM Sans', sans-serif; font-size: 9px; color: #888; letter-spacing: 0.08em; outline: none; white-space: nowrap; overflow: hidden; min-width: 10px; }
     .meta-field:empty:before { content: attr(data-placeholder); color: #ccc; }
     .meta-field-wrap:focus-within { border-bottom-color: #ff4d1c; }
     .compose-body-wrap { position: relative; margin-bottom: 12px; min-height: 70px; }
@@ -88,8 +88,9 @@ window.addEventListener('load', function() {
     .post-accent { width: 32px; height: 3px; background: #ff4d1c; margin-bottom: 8px; }
     .post-meta { font-size: 10px; color: #aaa; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .post-meta-handle { color: #ff4d1c; font-weight: 700; }
+    .post-loc { text-transform: none; }
     .post-meta-sep { color: #ccc; }
-    .post-subject { font-size: 15px; font-weight: 700; color: #1a1a1a; text-transform: uppercase; letter-spacing: -0.01em; margin-bottom: 6px; }
+    .post-subject { font-size: 15px; font-weight: 700; color: #1a1a1a; letter-spacing: -0.01em; margin-bottom: 6px; }
     .post-body { font-size: 13px; color: #555; line-height: 1.65; margin-bottom: 10px; }
     .post-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
     .post-tag { font-size: 9px; padding: 2px 6px; border: 1px solid #c5bfb5; color: #999; text-transform: uppercase; letter-spacing: 0.06em; }
@@ -193,7 +194,7 @@ window.addEventListener('load', function() {
     .following-post-item:last-child { border-bottom: none; }
     .following-post-handle { font-size: 9px; color: #ff4d1c; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 3px; }
     .following-post-preview { font-size: 11px; color: #555; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .following-post-subject { font-size: 10px; font-weight: 700; color: #1a1a1a; text-transform: uppercase; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .following-post-subject { font-size: 10px; font-weight: 700; color: #1a1a1a; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
     .loading { position: fixed; inset: 0; background: #1a1a1a; display: flex; align-items: center; justify-content: center; z-index: 300; }
     .loading-logo { font-size: 52px; font-weight: 700; color: #fff; text-transform: lowercase; letter-spacing: -0.04em; }
@@ -659,8 +660,8 @@ let pendingPost = null;
 async function submitPost() {
   const text = document.getElementById('compose-text').value.trim();
   if (!text) return;
-  const subject = document.getElementById('compose-subject').innerText.trim();
-  const location = document.getElementById('compose-location').innerText.trim();
+  const subject = document.getElementById('compose-subject').textContent.trim();
+  const location = document.getElementById('compose-location').textContent.trim();
   const { data: { session } } = await sb.auth.getSession();
   if (!session) return;
 
@@ -744,10 +745,10 @@ function renderPost(p, container, prepend=false) {
   const el = document.createElement('div');
   el.className = 'post' + (prepend ? ' new-post-anim' : '');
   el.id = `post-${p.id}`;
-  const locStr = p.location ? ` — ${p.location}` : '';
+  const locStr = p.location ? ` — <span class="post-loc">${p.location}</span>` : '';
   const subHTML = p.subject ? `<div class="post-subject">${p.subject}</div>` : '';
   const tagsHTML = p.tags?.length ? `<div class="post-tags">${p.tags.map(t=>`<span class="post-tag">${t}</span>`).join('')}</div>` : '';
-  const ts = new Date(p.created_at).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
+  const ts = fmtTime(p.created_at);
   const likeBtn = `<button class="action-btn like-btn" onclick="toggleLike(${p.id},this)"><i class="ti ti-heart"></i> <span>${p.likes||0}</span></button>`;
   const commentBtn = `<button class="action-btn" onclick="toggleComments(${p.id})"><i class="ti ti-message-circle"></i> <span>${p.comment_count||0}</span></button>`;
   const bookmarkBtn = `<button class="action-btn bookmark-btn${isBookmarked?' bookmarked':''}" onclick="toggleBookmark(${p.id},this)"><i class="ti ti-bookmark"></i></button>`;
@@ -823,7 +824,7 @@ async function loadComments(postId) {
     const d = document.createElement('div');
     d.className = 'comment';
     const auth = c.handle ? `<span class="handle-pill">@${c.handle}</span>` : `<span class="anon-label">anonymous</span>`;
-    const cts = c.created_at ? new Date(c.created_at).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'}) : '';
+    const cts = fmtTime(c.created_at);
     d.innerHTML = `<div class="avatar av-a" style="font-size:9px">${c.handle ? c.handle.slice(0,2).toUpperCase() : '?'}</div><div class="comment-content"><div class="comment-author">${auth}</div><div class="comment-text">${c.body}</div>${cts ? `<div style="font-size:9px;color:#bbb;text-transform:uppercase;letter-spacing:0.06em;margin-top:4px;">${cts}</div>` : ''}</div>`;
     list.appendChild(d);
   });
@@ -949,7 +950,7 @@ async function loadDMMessages(handle) {
   (data||[]).forEach(m => {
     const div = document.createElement('div');
     div.className = 'dm-msg ' + (m.sender_id === session.user.id ? 'sent' : 'recv');
-    const ts = new Date(m.created_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+    const ts = fmtTime(m.created_at, false);
     div.innerHTML = `<div class="dm-msg-bubble">${m.body}</div><div class="dm-msg-meta">${ts}</div>`;
     el.appendChild(div);
   });
@@ -1025,7 +1026,16 @@ async function filterPostsByTag(tag) {
   data.forEach(p => renderPost(p, c));
 }
 function handleBodyInput(){document.getElementById('compose-ph').style.display=document.getElementById('compose-text').value?'none':'flex';}
-function nowStamp(){return new Date().toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});}
+// Posts store created_at as UTC without a trailing 'Z'; treat as UTC and render in US Eastern time.
+function fmtTime(iso, withYear=true){
+  if(!iso) return '';
+  const hasTz = /[zZ]$|[+-]\d\d:?\d\d$/.test(iso);
+  const d = new Date(hasTz ? iso : iso + 'Z');
+  const opts = { timeZone:'America/New_York', month:'short', day:'numeric', hour:'numeric', minute:'2-digit' };
+  if (withYear) opts.year = 'numeric';
+  return d.toLocaleString('en-US', opts);
+}
+function nowStamp(){return new Date().toLocaleString('en-US',{ timeZone:'America/New_York', month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});}
 setInterval(()=>{const e=document.getElementById('compose-ts');if(e)e.textContent=nowStamp();},1000);
 async function loadTagsFromDB() {
   const { data } = await sb.from('posts').select('tags');
