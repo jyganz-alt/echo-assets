@@ -203,6 +203,10 @@ window.addEventListener('load', function() {
     .auth-left { width: 42%; background: #1a1a1a; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 30px; flex-shrink: 0; }
     .auth-logo { font-size: 56px; font-weight: 700; color: #fff; text-transform: lowercase; letter-spacing: -0.04em; line-height: 1; margin-bottom: 14px; }
     .auth-logo .o { color: #ff4d1c; }
+    .auth-logo .logo-colon { display: inline-block; position: relative; width: 0.22em; height: 1em; vertical-align: baseline; margin-left: 0.02em; }
+    .auth-logo .logo-colon::before, .auth-logo .logo-colon::after { content: ''; position: absolute; left: 0; width: 0.19em; height: 0.19em; border-radius: 50%; background: #ff4d1c; }
+    .auth-logo .logo-colon::before { bottom: 0.30em; } /* upper dot */
+    .auth-logo .logo-colon::after  { bottom: 0.11em; } /* lower dot — gap from upper dot is tunable */
     .auth-tagline { font-size: 9px; color: #555; text-transform: uppercase; letter-spacing: 0.14em; font-weight: 500; text-align: center; line-height: 2; }
     .auth-right { flex: 1; background: #f0ede6; display: flex; flex-direction: column; justify-content: center; padding: 40px; overflow-y: auto; }
     .auth-view { display: none; } .auth-view.active { display: block; }
@@ -246,8 +250,8 @@ window.addEventListener('load', function() {
 <!-- AUTH -->
 <div class="auth-overlay" id="auth-overlay" style="display:none">
   <div class="auth-left">
-    <div class="auth-logo">ech<span class="o">o:</span></div>
-    <div class="auth-tagline">the lingering sound a voice leaves behind<br>in a vast empty space</div>
+    <div class="auth-logo">ech<span class="o">o</span><span class="logo-colon" aria-hidden="true"></span></div>
+    <div class="auth-tagline">the lingering sound<br>a voice leaves behind<br>in a vast empty space</div>
   </div>
   <div class="auth-right">
     <div class="auth-view active" id="auth-signup">
