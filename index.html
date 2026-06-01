@@ -516,8 +516,33 @@ let allTags = [...BASE_TAGS];
 
 // INIT
 window.addEventListener('DOMContentLoaded', async () => {
+  // Safety net #1: regardless of what hangs below, hide the loading screen within
+  // 5 seconds and fall back to the anon view. The user never gets stuck on "echo".
+  const watchdog = setTimeout(() => {
+    document.getElementById('loading').style.display = 'none';
+    if (document.getElementById('main-app').style.display !== 'grid') {
+      try { showAnonApp(); } catch(e) {}
+    }
+    console.warn('echo: init watchdog tripped, fell back to anon');
+  }, 5000);
+
+  // Defensive: unregister any orphan service worker from an older deploy.
+  // echo doesn't register one, so any registered SW is stale and may be
+  // serving the user old HTML with bugs we've since fixed.
   try {
-    const { data: { session } } = await sb.auth.getSession();
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      if (regs.length) await Promise.all(regs.map(r => r.unregister()));
+    }
+  } catch(e) {}
+
+  try {
+    // Safety net #2: don't let getSession hang forever. Cap it at 3s; on timeout,
+    // assume no session and proceed as anon.
+    const sessionPromise = sb.auth.getSession();
+    const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('getSession timeout')), 3000));
+    const { data: { session } } = await Promise.race([sessionPromise, timeout]);
+    clearTimeout(watchdog);
     document.getElementById('loading').style.display = 'none';
     if (session) {
       await loadProfile(session.user.id);
@@ -526,9 +551,13 @@ window.addEventListener('DOMContentLoaded', async () => {
       showAnonApp();
     }
   } catch(e) {
+    clearTimeout(watchdog);
     document.getElementById('loading').style.display = 'none';
+    // Safety net #3: if auth failed/timed out, the local token may be corrupt.
+    // Clear it so the next load starts fresh, then show the anon view.
+    try { Object.keys(localStorage).filter(k => k.startsWith('sb-')).forEach(k => localStorage.removeItem(k)); } catch{}
     showAnonApp();
-    console.error('Init error:', e);
+    console.error('echo: init error, fell back to anon:', e);
   }
 });
 
