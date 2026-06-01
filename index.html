@@ -205,10 +205,11 @@ window.addEventListener('load', function() {
     .auth-left { width: 42%; background: #1a1a1a; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 30px; flex-shrink: 0; }
     .auth-logo { font-size: 56px; font-weight: 700; color: #fff; text-transform: lowercase; letter-spacing: -0.04em; line-height: 1; margin-bottom: 14px; }
     .auth-logo .o { color: #ff4d1c; }
-    .auth-logo .logo-colon { display: inline-block; position: relative; width: 0.18em; height: 1em; vertical-align: baseline; margin-left: 0.03em; }
-    .auth-logo .logo-colon::before, .auth-logo .logo-colon::after { content: ''; position: absolute; left: 0; width: 0.15em; height: 0.15em; border-radius: 50%; background: #ff4d1c; }
-    .auth-logo .logo-colon::before { bottom: 0.290em; } /* upper dot */
-    .auth-logo .logo-colon::after  { bottom: 0.040em; } /* lower dot — centered on the o, gap between touching and a real colon */
+    /* Generic two-dot colon, works at any logo size (em-based) */
+    .logo-colon { display: inline-block; position: relative; width: 0.18em; height: 1em; vertical-align: baseline; margin-left: 0.03em; }
+    .logo-colon::before, .logo-colon::after { content: ''; position: absolute; left: 0; width: 0.15em; height: 0.15em; border-radius: 50%; background: #ff4d1c; }
+    .logo-colon::before { bottom: 0.290em; } /* upper dot */
+    .logo-colon::after  { bottom: 0.040em; } /* lower dot */
     .auth-tagline { font-size: 9px; color: #555; text-transform: uppercase; letter-spacing: 0.14em; font-weight: 500; text-align: center; line-height: 2; }
     .auth-right { flex: 1; background: #f0ede6; display: flex; flex-direction: column; justify-content: center; padding: 40px; overflow-y: auto; }
     .auth-view { display: none; } .auth-view.active { display: block; }
@@ -254,10 +255,6 @@ window.addEventListener('load', function() {
     .anon-hero-logo { font-size: 64px; font-weight: 700; text-transform: lowercase; letter-spacing: -0.04em; line-height: 1; margin-bottom: 16px; }
     .anon-hero-pitch { font-size: 22px; font-weight: 700; color: #fff; text-transform: lowercase; letter-spacing: -0.01em; line-height: 1.2; margin-bottom: 32px; }
     .anon-hero-logo .o { color: #ff4d1c; }
-    .anon-hero-logo .logo-colon { display: inline-block; position: relative; width: 0.18em; height: 1em; vertical-align: baseline; margin-left: 0.03em; }
-    .anon-hero-logo .logo-colon::before, .anon-hero-logo .logo-colon::after { content: ''; position: absolute; left: 0; width: 0.15em; height: 0.15em; border-radius: 50%; background: #ff4d1c; }
-    .anon-hero-logo .logo-colon::before { bottom: 0.290em; }
-    .anon-hero-logo .logo-colon::after  { bottom: 0.040em; }
     .anon-hero-cta { display: inline-flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
     .anon-hero-btn { background: #ff4d1c; border: none; color: #fff; font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; padding: 12px 22px; cursor: pointer; }
     .anon-hero-btn:hover { background: #e03d10; }
@@ -328,7 +325,7 @@ window.addEventListener('load', function() {
   <div class="app-header">
     <div class="header-logo-line">
       
-      <span class="header-logo">ech<span class="o">o</span></span>
+      <span class="header-logo">ech<span class="o">o</span><span class="logo-colon"></span></span>
     </div>
     <button class="btn-signin" onclick="openAuth('signup')">Sign in / Sign up</button>
     <button class="btn-signout" onclick="signOut()">Sign out</button>
@@ -354,7 +351,7 @@ window.addEventListener('load', function() {
 
   <div class="feed" id="main-area">
     <div class="motto-bar">
-      <div class="motto" id="motto-text">tell your true story</div>
+      <div class="motto" id="motto-text">tell your true story.</div>
       <div class="feed-tabs" id="feed-tabs" style="display:none">
         <div class="feed-tab active" id="tab-all" onclick="switchFeedTab('all')">All</div>
         <div class="feed-tab" id="tab-following" onclick="switchFeedTab('following')">Following</div>
@@ -566,7 +563,7 @@ function showApp() {
   document.getElementById('auth-overlay').style.display = 'none';
   document.getElementById('main-app').style.display = 'grid';
   const m = document.getElementById('motto-text');
-  m.innerHTML = 'tell your true story';
+  m.innerHTML = 'tell your true story.';
   m.classList.remove('manifesto');
   renderTagPicker();
   renderTagCloud();
@@ -682,9 +679,9 @@ function showView(v) {
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   document.getElementById('nav-'+v)?.classList.add('active');
   document.getElementById('feed-tabs').style.display = 'none';
-  const mottos = {feed:'tell your true story',bookmarks:'your saved entries.',following:'writers you follow.',dm:'messages.',journal:'your journal.',settings:'settings.'};
+  const mottos = {feed:'tell your true story.',bookmarks:'your saved entries.',following:'writers you follow.',dm:'messages.',journal:'your journal.',settings:'settings.'};
   const mottoEl = document.getElementById('motto-text');
-  mottoEl.innerHTML = mottos[v] || 'tell your true story';
+  mottoEl.innerHTML = mottos[v] || 'tell your true story.';
   mottoEl.classList.remove('manifesto');
   if (v==='feed') { document.getElementById('feed-tabs').style.display='flex'; loadPosts(); }
   if (v==='bookmarks') loadBookmarks();
