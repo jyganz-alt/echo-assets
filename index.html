@@ -53,7 +53,7 @@ window.addEventListener('load', function() {
     .feed { overflow-y: auto; display: flex; flex-direction: column; }
     .motto-bar { background: #ff4d1c; padding: 10px 20px; position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
     .motto { font-size: 22px; font-weight: 700; color: #fff; text-transform: lowercase; letter-spacing: -0.02em; line-height: 1; }
-    .motto.manifesto { font-size: 13px; font-weight: 500; line-height: 1.7; letter-spacing: 0.06em; }
+    .motto.manifesto { font-size: 13px; font-weight: 500; letter-spacing: 0.06em; }
     .feed-tabs { display: flex; }
     .feed-tab { font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.08em; padding: 4px 10px; cursor: pointer; border: 1px solid rgba(255,255,255,0.3); }
     .feed-tab.active { background: #fff; color: #ff4d1c; border-color: #fff; }
@@ -354,7 +354,7 @@ window.addEventListener('load', function() {
 
   <div class="feed" id="main-area">
     <div class="motto-bar">
-      <div class="motto manifesto" id="motto-text">your name is hidden.<br>your username is invented.<br>your story is true.</div>
+      <div class="motto manifesto" id="motto-text">your name is hidden &nbsp;·&nbsp; your username is invented &nbsp;·&nbsp; your story is true</div>
       <div class="feed-tabs" id="feed-tabs" style="display:none">
         <div class="feed-tab active" id="tab-all" onclick="switchFeedTab('all')">All</div>
         <div class="feed-tab" id="tab-following" onclick="switchFeedTab('following')">Following</div>
@@ -364,7 +364,7 @@ window.addEventListener('load', function() {
     <div id="view-feed" class="view active">
       <div class="anon-hero">
         <div class="anon-hero-logo">ech<span class="o">o</span><span class="logo-colon"></span></div>
-        <div class="anon-hero-pitch">tell your true story.</div>
+        <div class="anon-hero-pitch">tell your true story</div>
         <div class="anon-hero-cta">
           <button class="anon-hero-btn" onclick="openAuth('signup')">Start your own</button>
           <button class="anon-hero-btn secondary" onclick="document.querySelector('.feed .post')?.scrollIntoView({behavior:'smooth', block:'start'})">Browse stories</button>
@@ -676,7 +676,7 @@ function showView(v) {
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   document.getElementById('nav-'+v)?.classList.add('active');
   document.getElementById('feed-tabs').style.display = 'none';
-  const mottos = {feed:'your name is hidden.<br>your username is invented.<br>your story is true.',bookmarks:'your saved entries.',following:'writers you follow.',dm:'messages.',journal:'your journal.',settings:'settings.'};
+  const mottos = {feed:'your name is hidden &nbsp;·&nbsp; your username is invented &nbsp;·&nbsp; your story is true',bookmarks:'your saved entries.',following:'writers you follow.',dm:'messages.',journal:'your journal.',settings:'settings.'};
   const mottoEl = document.getElementById('motto-text');
   mottoEl.innerHTML = mottos[v] || 'tell your true story.';
   mottoEl.classList.toggle('manifesto', v === 'feed');
