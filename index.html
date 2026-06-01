@@ -239,6 +239,33 @@ window.addEventListener('load', function() {
     .toggle-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
     .toggle-label { font-size: 11px; color: #555; text-transform: uppercase; flex: 1; }
     .toggle-desc { font-size: 10px; color: #aaa; margin-top: 1px; }
+    /* ===== Anon (unauthenticated) experience ===== */
+    body.anon .compose { display: none !important; }
+    body.anon .sidebar-profile { display: none; }
+    body.anon #nav-following, body.anon #nav-bookmarks, body.anon #nav-dm, body.anon #nav-journal, body.anon #nav-settings { display: none; }
+    body.anon #feed-tabs { display: none !important; }
+    body.anon .btn-signout { display: none; }
+    body:not(.anon) .btn-signin { display: none; }
+    body:not(.anon) .anon-hero { display: none; }
+    .btn-signin { background: #ff4d1c; border: none; color: #fff; font-family: 'DM Sans', sans-serif; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; padding: 6px 14px; cursor: pointer; }
+    .btn-signin:hover { background: #e03d10; }
+    .anon-hero { background: #1a1a1a; color: #fff; padding: 48px 24px 40px; text-align: center; border-bottom: 2px solid #1a1a1a; }
+    .anon-hero-logo { font-size: 64px; font-weight: 700; text-transform: lowercase; letter-spacing: -0.04em; line-height: 1; margin-bottom: 14px; }
+    .anon-hero-logo .o { color: #ff4d1c; }
+    .anon-hero-logo .logo-colon { display: inline-block; position: relative; width: 0.18em; height: 1em; vertical-align: baseline; margin-left: 0.03em; }
+    .anon-hero-logo .logo-colon::before, .anon-hero-logo .logo-colon::after { content: ''; position: absolute; left: 0; width: 0.15em; height: 0.15em; border-radius: 50%; background: #ff4d1c; }
+    .anon-hero-logo .logo-colon::before { bottom: 0.290em; }
+    .anon-hero-logo .logo-colon::after  { bottom: 0.040em; }
+    .anon-hero-tag { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.14em; line-height: 2; margin-bottom: 28px; }
+    .anon-hero-pitch { font-size: 22px; font-weight: 700; color: #fff; max-width: 520px; margin: 0 auto 12px; line-height: 1.25; letter-spacing: -0.01em; }
+    .anon-hero-sub { font-size: 13px; color: #aaa; max-width: 480px; margin: 0 auto 26px; line-height: 1.55; }
+    .anon-hero-cta { display: inline-flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+    .anon-hero-btn { background: #ff4d1c; border: none; color: #fff; font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; padding: 12px 22px; cursor: pointer; }
+    .anon-hero-btn:hover { background: #e03d10; }
+    .anon-hero-btn.secondary { background: transparent; border: 1.5px solid #555; color: #ddd; }
+    .anon-hero-btn.secondary:hover { border-color: #fff; color: #fff; }
+    .auth-close { position: absolute; top: 16px; right: 20px; background: none; border: none; color: #888; font-size: 28px; cursor: pointer; line-height: 1; z-index: 10; font-family: inherit; padding: 4px 8px; }
+    .auth-close:hover { color: #1a1a1a; }
   </style>
 </head>
 <body>
@@ -250,6 +277,7 @@ window.addEventListener('load', function() {
 
 <!-- AUTH -->
 <div class="auth-overlay" id="auth-overlay" style="display:none">
+  <button class="auth-close" onclick="closeAuth()" aria-label="Close">&times;</button>
   <div class="auth-left">
     <div class="auth-logo">ech<span class="o">o</span><span class="logo-colon" aria-hidden="true"></span></div>
     <div class="auth-tagline">the lingering sound<br>a voice leaves behind<br>in a vast empty space</div>
@@ -303,6 +331,7 @@ window.addEventListener('load', function() {
       
       <span class="header-logo">ech<span class="o">o</span></span>
     </div>
+    <button class="btn-signin" onclick="openAuth('signup')">Sign in / Sign up</button>
     <button class="btn-signout" onclick="signOut()">Sign out</button>
   </div>
 
@@ -334,6 +363,16 @@ window.addEventListener('load', function() {
     </div>
 
     <div id="view-feed" class="view active">
+      <div class="anon-hero">
+        <div class="anon-hero-logo">ech<span class="o">o</span><span class="logo-colon"></span></div>
+        <div class="anon-hero-tag">the lingering sound a voice leaves behind in a vast empty space</div>
+        <div class="anon-hero-pitch">tell your true story.</div>
+        <div class="anon-hero-sub">echo is a quiet place for the things you've been carrying — stories of grief, love, change, the days you survived. read what others have shared. when you're ready, write your own.</div>
+        <div class="anon-hero-cta">
+          <button class="anon-hero-btn" onclick="openAuth('signup')">Start your own</button>
+          <button class="anon-hero-btn secondary" onclick="document.querySelector('.feed .post')?.scrollIntoView({behavior:'smooth', block:'start'})">Browse stories</button>
+        </div>
+      </div>
       <div class="compose">
         <div class="compose-username" id="compose-handle-label">–</div>
         <div class="compose-meta-row">
@@ -490,11 +529,11 @@ window.addEventListener('DOMContentLoaded', async () => {
       await loadProfile(session.user.id);
       showApp();
     } else {
-      document.getElementById('auth-overlay').style.display = 'flex';
+      showAnonApp();
     }
   } catch(e) {
     document.getElementById('loading').style.display = 'none';
-    document.getElementById('auth-overlay').style.display = 'flex';
+    showAnonApp();
     console.error('Init error:', e);
   }
 });
@@ -526,6 +565,7 @@ function updateSidebarProfile() {
 }
 
 function showApp() {
+  document.body.classList.remove('anon');
   document.getElementById('auth-overlay').style.display = 'none';
   document.getElementById('main-app').style.display = 'grid';
   renderTagPicker();
@@ -537,10 +577,28 @@ function showApp() {
   loadTagsFromDB();
 }
 
+function showAnonApp() {
+  document.body.classList.add('anon');
+  document.getElementById('main-app').style.display = 'grid';
+  renderTagCloud();
+  loadPosts();
+  loadRightPanel();
+  loadTagsFromDB();
+}
+
 // AUTH
 function switchAuth(mode) {
   document.querySelectorAll('.auth-view').forEach(el => el.classList.remove('active'));
   document.getElementById('auth-' + mode).classList.add('active');
+}
+
+function openAuth(mode) {
+  if (mode) switchAuth(mode);
+  document.getElementById('auth-overlay').style.display = 'flex';
+}
+
+function closeAuth() {
+  document.getElementById('auth-overlay').style.display = 'none';
 }
 
 function previewHandle() {
@@ -642,7 +700,7 @@ function switchFeedTab(tab) {
 async function loadPosts() {
   const c = document.getElementById('posts-container');
   c.innerHTML = '<div class="empty-state">Loading…</div>';
-  let query = sb.from('posts').select('*, profiles(username)').order('created_at', {ascending: false});
+  let query = sb.from('posts').select('*').order('created_at', {ascending: false});
   if (activeFeedTab === 'following' && followedUsers.size > 0) {
     query = query.in('handle', [...followedUsers].map(h => h.replace('@','')));
   } else if (activeFeedTab === 'following') {
@@ -763,7 +821,7 @@ function renderPost(p, container, prepend=false) {
 
 async function toggleLike(postId, btn) {
   const { data: { session } } = await sb.auth.getSession();
-  if (!session) return;
+  if (!session) { openAuth('signup'); return; }
   const { data: existing } = await sb.from('likes').select('*').eq('user_id', session.user.id).eq('post_id', postId).maybeSingle();
   if (existing) {
     await sb.from('likes').delete().eq('user_id', session.user.id).eq('post_id', postId);
@@ -779,7 +837,7 @@ async function toggleLike(postId, btn) {
 
 async function toggleBookmark(postId, btn) {
   const { data: { session } } = await sb.auth.getSession();
-  if (!session) return;
+  if (!session) { openAuth('signup'); return; }
   if (bookmarkedIds.has(postId)) {
     await sb.from('bookmarks').delete().eq('user_id', session.user.id).eq('post_id', postId);
     bookmarkedIds.delete(postId);
@@ -795,7 +853,7 @@ async function toggleBookmark(postId, btn) {
 
 async function toggleFollow(handle, btn) {
   const { data: { session } } = await sb.auth.getSession();
-  if (!session) return;
+  if (!session) { openAuth('signup'); return; }
   const { data: target } = await sb.from('profiles').select('id').eq('username', handle).single();
   if (!target) return;
   if (followedUsers.has('@'+handle)) {
@@ -977,6 +1035,7 @@ async function sendDM() {
 }
 
 function openDMFromPost(handle) {
+  if (!ME) { openAuth('signup'); return; }
   showView('dm');
   setTimeout(() => openDMConvo(handle), 100);
 }
