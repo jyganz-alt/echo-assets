@@ -354,7 +354,7 @@ window.addEventListener('load', function() {
 
   <div class="feed" id="main-area">
     <div class="motto-bar">
-      <div class="motto manifesto" id="motto-text">your name is hidden &nbsp;·&nbsp; your username is invented &nbsp;·&nbsp; your story is true</div>
+      <div class="motto manifesto" id="motto-text">your name is hidden &nbsp;·&nbsp; your username is invented &nbsp;·&nbsp; your story is truth</div>
       <div class="feed-tabs" id="feed-tabs" style="display:none">
         <div class="feed-tab active" id="tab-all" onclick="switchFeedTab('all')">All</div>
         <div class="feed-tab" id="tab-following" onclick="switchFeedTab('following')">Following</div>
@@ -676,7 +676,7 @@ function showView(v) {
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   document.getElementById('nav-'+v)?.classList.add('active');
   document.getElementById('feed-tabs').style.display = 'none';
-  const mottos = {feed:'your name is hidden &nbsp;·&nbsp; your username is invented &nbsp;·&nbsp; your story is true',bookmarks:'your saved entries.',following:'writers you follow.',dm:'messages.',journal:'your journal.',settings:'settings.'};
+  const mottos = {feed:'your name is hidden &nbsp;·&nbsp; your username is invented &nbsp;·&nbsp; your story is truth',bookmarks:'your saved entries.',following:'writers you follow.',dm:'messages.',journal:'your journal.',settings:'settings.'};
   const mottoEl = document.getElementById('motto-text');
   mottoEl.innerHTML = mottos[v] || 'tell your true story.';
   mottoEl.classList.toggle('manifesto', v === 'feed');
