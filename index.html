@@ -92,7 +92,10 @@ window.addEventListener('load', function() {
     .post-loc { text-transform: none; }
     .post-meta-sep { color: #ccc; }
     .post-subject { font-size: 15px; font-weight: 700; color: #1a1a1a; letter-spacing: -0.01em; margin-bottom: 6px; }
-    .post-body { font-size: 13px; color: #555; line-height: 1.65; margin-bottom: 10px; }
+    .post-body { font-size: 13px; color: #555; line-height: 1.65; margin-bottom: 10px; white-space: pre-wrap; }
+    .post-body.clamped { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 4px; }
+    .read-more-btn { background: none; border: none; color: #888; font-family: 'DM Sans', sans-serif; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; cursor: pointer; padding: 4px 0 10px; font-weight: 500; }
+    .read-more-btn:hover { color: #ff4d1c; }
     .post-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
     .post-tag { font-size: 9px; padding: 2px 6px; border: 1px solid #c5bfb5; color: #999; text-transform: uppercase; letter-spacing: 0.06em; }
     .post-actions { display: flex; align-items: center; }
@@ -845,9 +848,25 @@ function renderPost(p, container, prepend=false) {
   let right = isOwner
     ? `<div class="post-owner-actions"><button class="owner-btn" onclick="editPost(${p.id})">Edit</button><button class="owner-btn delete" onclick="deletePost(${p.id})">Delete</button></div>`
     : `<div class="post-owner-actions"><button class="owner-btn follow-btn" onclick="toggleFollow('${p.handle}',this)">Follow</button></div>`;
-  el.innerHTML = `<div class="post-accent"></div><div class="post-meta"><span>entry #${p.entry_num||'–'}</span><span class="post-meta-sep">·</span><span class="post-meta-handle">@${p.handle}</span><span class="post-meta-sep">·</span><span>${ts}${locStr}</span></div>${subHTML}<div class="post-body" id="pbody-${p.id}">${p.body}</div>${tagsHTML}<div class="post-actions">${likeBtn}${commentBtn}${bookmarkBtn}${dmBtn}${right}</div><div class="comments-section" id="comments-${p.id}"><div id="clist-${p.id}"></div><div class="comment-input-wrap"><textarea class="c-textarea" id="cinput-${p.id}" placeholder="Write a response…" rows="1"></textarea><div class="c-footer"><span class="c-ts">${nowStamp()}</span><button class="btn-cancel-c" onclick="toggleComments(${p.id})">Cancel</button><button class="btn-reply" onclick="submitComment(${p.id})">Reply</button></div></div></div>`;
+  el.innerHTML = `<div class="post-accent"></div><div class="post-meta"><span>entry #${p.entry_num||'–'}</span><span class="post-meta-sep">·</span><span class="post-meta-handle">@${p.handle}</span><span class="post-meta-sep">·</span><span>${ts}${locStr}</span></div>${subHTML}<div class="post-body clamped" id="pbody-${p.id}">${p.body}</div>${tagsHTML}<div class="post-actions">${likeBtn}${commentBtn}${bookmarkBtn}${dmBtn}${right}</div><div class="comments-section" id="comments-${p.id}"><div id="clist-${p.id}"></div><div class="comment-input-wrap"><textarea class="c-textarea" id="cinput-${p.id}" placeholder="Write a response…" rows="1"></textarea><div class="c-footer"><span class="c-ts">${nowStamp()}</span><button class="btn-cancel-c" onclick="toggleComments(${p.id})">Cancel</button><button class="btn-reply" onclick="submitComment(${p.id})">Reply</button></div></div></div>`;
   if (prepend) container.insertBefore(el, container.firstChild);
   else container.appendChild(el);
+  // Add a "Read more" link if the body overflows the 3-line clamp.
+  requestAnimationFrame(() => {
+    const bodyEl = el.querySelector(`#pbody-${p.id}`);
+    if (!bodyEl) return;
+    if (bodyEl.scrollHeight > bodyEl.clientHeight + 2) {
+      const btn = document.createElement('button');
+      btn.className = 'read-more-btn';
+      btn.textContent = 'Read more';
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        const stillClamped = bodyEl.classList.toggle('clamped');
+        btn.textContent = stillClamped ? 'Read more' : 'Read less';
+      };
+      bodyEl.insertAdjacentElement('afterend', btn);
+    }
+  });
 }
 
 async function toggleLike(postId, btn) {
