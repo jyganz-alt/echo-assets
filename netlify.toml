@@ -2,3 +2,7 @@
   for = "/*"
   [headers.values]
     Content-Security-Policy = "default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob:;"
+    # Browsers may keep a local copy of the HTML, but they must revalidate with the
+    # server (via ETag) every time. The server returns 304 if unchanged (fast) or
+    # the fresh file if anything was deployed. Prevents stuck-cache issues.
+    Cache-Control = "public, max-age=0, must-revalidate"
