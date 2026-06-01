@@ -250,7 +250,7 @@ window.addEventListener('load', function() {
     .btn-signin { background: #ff4d1c; border: none; color: #fff; font-family: 'DM Sans', sans-serif; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; padding: 6px 14px; cursor: pointer; }
     .btn-signin:hover { background: #e03d10; }
     .anon-hero { background: #1a1a1a; color: #fff; padding: 48px 24px 40px; text-align: center; border-bottom: 2px solid #1a1a1a; }
-    .anon-hero-logo { font-size: 64px; font-weight: 700; text-transform: lowercase; letter-spacing: -0.04em; line-height: 1; margin-bottom: 14px; }
+    .anon-hero-logo { font-size: 64px; font-weight: 700; text-transform: lowercase; letter-spacing: -0.04em; line-height: 1; margin-bottom: 32px; }
     .anon-hero-logo .o { color: #ff4d1c; }
     .anon-hero-logo .logo-colon { display: inline-block; position: relative; width: 0.18em; height: 1em; vertical-align: baseline; margin-left: 0.03em; }
     .anon-hero-logo .logo-colon::before, .anon-hero-logo .logo-colon::after { content: ''; position: absolute; left: 0; width: 0.15em; height: 0.15em; border-radius: 50%; background: #ff4d1c; }
@@ -365,9 +365,6 @@ window.addEventListener('load', function() {
     <div id="view-feed" class="view active">
       <div class="anon-hero">
         <div class="anon-hero-logo">ech<span class="o">o</span><span class="logo-colon"></span></div>
-        <div class="anon-hero-tag">the lingering sound a voice leaves behind in a vast empty space</div>
-        <div class="anon-hero-pitch">tell your true story.</div>
-        <div class="anon-hero-sub">echo is a quiet place for the things you've been carrying — stories of grief, love, change, the days you survived. read what others have shared. when you're ready, write your own.</div>
         <div class="anon-hero-cta">
           <button class="anon-hero-btn" onclick="openAuth('signup')">Start your own</button>
           <button class="anon-hero-btn secondary" onclick="document.querySelector('.feed .post')?.scrollIntoView({behavior:'smooth', block:'start'})">Browse stories</button>
