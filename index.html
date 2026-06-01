@@ -265,6 +265,52 @@ window.addEventListener('load', function() {
     .anon-hero-btn.secondary:hover { border-color: #fff; color: #fff; }
     .auth-close { position: absolute; top: 16px; right: 20px; background: none; border: none; color: #888; font-size: 28px; cursor: pointer; line-height: 1; z-index: 10; font-family: inherit; padding: 4px 8px; }
     .auth-close:hover { color: #1a1a1a; }
+    /* ===== Mobile (≤ 720px) ===== */
+    @media (max-width: 720px) {
+      /* Prevent any rogue horizontal overflow */
+      html, body { overflow-x: hidden; max-width: 100vw; }
+      .post-body, .post-subject, .post-meta { overflow-wrap: break-word; word-wrap: break-word; min-width: 0; }
+      /* App shell collapses to a single column; sidebar + right panel are hidden */
+      .app { grid-template-columns: 1fr; height: auto; min-height: 100vh; max-width: 100vw; }
+      /* Let the whole page scroll instead of the .feed having its own scroll
+         (the internal scrollbar steals content width on mobile) */
+      .feed { overflow-y: visible; }
+      .sidebar { display: none; }
+      .right-panel { display: none; }
+      /* Header */
+      .app-header { padding: 10px 14px; }
+      .header-logo { font-size: 22px; }
+      .btn-signin { font-size: 9px; padding: 6px 10px; letter-spacing: 0.06em; }
+      .btn-signout { font-size: 8px; padding: 4px 8px; }
+      /* Motto bar */
+      .motto-bar { padding: 8px 12px; }
+      .motto { font-size: 16px; }
+      .motto.manifesto { font-size: 8px; line-height: 1.7; letter-spacing: 0.02em; white-space: normal; }
+      /* Anon hero */
+      .anon-hero { padding: 32px 18px 28px; }
+      .anon-hero-logo { font-size: 48px; }
+      .anon-hero-pitch { font-size: 16px; margin-bottom: 24px; }
+      .anon-hero-cta { flex-direction: column; gap: 8px; width: 100%; align-items: center; }
+      .anon-hero-btn { font-size: 10px; padding: 10px 16px; letter-spacing: 0.08em; width: 100%; max-width: 260px; }
+      /* Compose */
+      .compose { padding: 12px 14px; }
+      .compose-meta-row { flex-direction: column; gap: 8px; align-items: stretch; }
+      .compose-body { font-size: 14px; }
+      /* Posts */
+      .post { padding: 14px 14px; }
+      .post-meta { gap: 6px; font-size: 9px; }
+      .post-subject { font-size: 14px; }
+      .post-body { font-size: 13px; }
+      .post-actions { flex-wrap: wrap; gap: 6px; }
+      .post-owner-actions { margin-left: 0; }
+      /* Auth overlay stacks: small dark header + form below */
+      .auth-overlay { flex-direction: column; overflow-y: auto; }
+      .auth-left { width: 100%; padding: 24px 20px 18px; flex-shrink: 0; }
+      .auth-logo { font-size: 42px; margin-bottom: 6px; }
+      .auth-tagline { font-size: 8px; line-height: 1.8; }
+      .auth-right { width: 100%; padding: 28px 24px 40px; overflow-y: visible; }
+      .auth-close { top: 12px; right: 14px; }
+    }
   </style>
 </head>
 <body>
