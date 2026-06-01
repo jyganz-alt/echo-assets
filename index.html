@@ -354,7 +354,7 @@ window.addEventListener('load', function() {
 
   <div class="feed" id="main-area">
     <div class="motto-bar">
-      <div class="motto manifesto" id="motto-text">your name is hidden &nbsp;·&nbsp; your username is invented &nbsp;·&nbsp; your story is truth</div>
+      <div class="motto" id="motto-text">tell your true story</div>
       <div class="feed-tabs" id="feed-tabs" style="display:none">
         <div class="feed-tab active" id="tab-all" onclick="switchFeedTab('all')">All</div>
         <div class="feed-tab" id="tab-following" onclick="switchFeedTab('following')">Following</div>
@@ -565,6 +565,9 @@ function showApp() {
   document.body.classList.remove('anon');
   document.getElementById('auth-overlay').style.display = 'none';
   document.getElementById('main-app').style.display = 'grid';
+  const m = document.getElementById('motto-text');
+  m.innerHTML = 'tell your true story';
+  m.classList.remove('manifesto');
   renderTagPicker();
   renderTagCloud();
   document.getElementById('compose-ts').textContent = nowStamp();
@@ -577,6 +580,9 @@ function showApp() {
 function showAnonApp() {
   document.body.classList.add('anon');
   document.getElementById('main-app').style.display = 'grid';
+  const m = document.getElementById('motto-text');
+  m.innerHTML = 'your name is hidden &nbsp;·&nbsp; your username is invented &nbsp;·&nbsp; your story is truth';
+  m.classList.add('manifesto');
   renderTagCloud();
   loadPosts();
   loadRightPanel();
