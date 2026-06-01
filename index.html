@@ -682,10 +682,10 @@ function showView(v) {
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   document.getElementById('nav-'+v)?.classList.add('active');
   document.getElementById('feed-tabs').style.display = 'none';
-  const mottos = {feed:'your name is hidden &nbsp;·&nbsp; your username is invented &nbsp;·&nbsp; your story is truth',bookmarks:'your saved entries.',following:'writers you follow.',dm:'messages.',journal:'your journal.',settings:'settings.'};
+  const mottos = {feed:'tell your true story',bookmarks:'your saved entries.',following:'writers you follow.',dm:'messages.',journal:'your journal.',settings:'settings.'};
   const mottoEl = document.getElementById('motto-text');
-  mottoEl.innerHTML = mottos[v] || 'tell your true story.';
-  mottoEl.classList.toggle('manifesto', v === 'feed');
+  mottoEl.innerHTML = mottos[v] || 'tell your true story';
+  mottoEl.classList.remove('manifesto');
   if (v==='feed') { document.getElementById('feed-tabs').style.display='flex'; loadPosts(); }
   if (v==='bookmarks') loadBookmarks();
   if (v==='following') loadFollowingFeed();
