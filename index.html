@@ -46,8 +46,8 @@ window.addEventListener('load', function() {
         background:
           linear-gradient(
             to right,
-            #e8e3da 0,
-            #e8e3da calc(50vw - 434px),
+            #ff4d1c 0,
+            #ff4d1c calc(50vw - 434px),
             #f0ede6 calc(50vw - 434px),
             #f0ede6 calc(50vw + 286px),
             #e8e3da calc(50vw + 286px),
@@ -67,14 +67,13 @@ window.addEventListener('load', function() {
     .header-logo .o { color: #ff4d1c; }
     .btn-signout { background: none; border: 1px solid #555; color: #aaa; font-family: 'DM Sans', sans-serif; font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; padding: 4px 10px; cursor: pointer; }
     .btn-signout:hover { border-color: #fff; color: #fff; }
-    .sidebar { background: #e8e3da; border-right: 1px solid #c5bfb5; display: flex; flex-direction: column; overflow-y: auto; }
-    .nav-item { padding: 16px 0; color: #555; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.1s; }
-    .nav-item:hover { background: #ddd8cf; }
+    .sidebar { background: #ff4d1c; display: flex; flex-direction: column; }
+    .nav-item { padding: 16px 0; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.12s; }
+    .nav-item:hover { background: rgba(0,0,0,0.08); }
     .nav-item i { font-size: 22px; }
     .nav-label { display: none; } /* icon-only sidebar — labels appear as native tooltips via title="" */
     .sidebar-profile, .sidebar-panel { display: none; } /* hidden on icon-only rail; tags + profile available elsewhere */
-    .nav-item:hover { background: #ddd8cf; color: #1a1a1a; }
-    .nav-item.active { background: #ff4d1c; color: #fff; }
+    .nav-item.active { background: rgba(0,0,0,0.18); color: #fff; }
     .nav-item i { font-size: 16px; }
     .sidebar-profile { padding: 12px 16px; border-top: 2px solid #1a1a1a; border-bottom: 2px solid #1a1a1a; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
     .avatar { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0; }
@@ -290,7 +289,7 @@ window.addEventListener('load', function() {
     /* ===== Anon (unauthenticated) experience ===== */
     body.anon .compose { display: none !important; }
     body.anon .sidebar-profile { display: none; }
-    body.anon #nav-alerts, body.anon #nav-following, body.anon #nav-bookmarks, body.anon #nav-dm, body.anon #nav-journal, body.anon #nav-settings { display: none; }
+    /* All nav icons show for everyone; auth-only views prompt signup when clicked (handled in showView) */
     body.anon #feed-tabs { display: none !important; }
     body.anon .btn-signout { display: none; }
     body:not(.anon) .btn-signin { display: none; }
@@ -436,7 +435,7 @@ window.addEventListener('load', function() {
 </div>
 <div class="motto-bar">
   <div class="motto-bar-inner">
-    <div class="motto" id="motto-text">tell your true story.</div>
+    <div class="motto" id="motto-text">tell your true story. the only way true stories can really be told. anonymously.</div>
     <div class="feed-tabs" id="feed-tabs" style="display:none">
       <div class="feed-tab active" id="tab-all" onclick="switchFeedTab('all')">All</div>
       <div class="feed-tab" id="tab-following" onclick="switchFeedTab('following')">Following</div>
@@ -699,7 +698,7 @@ function showApp() {
   document.getElementById('auth-overlay').style.display = 'none';
   document.getElementById('main-app').style.display = 'grid';
   const m = document.getElementById('motto-text');
-  m.innerHTML = 'tell your true story the only way you really can. anonymously.';
+  m.innerHTML = 'tell your true story. the only way true stories can really be told. anonymously.';
   m.classList.add('manifesto');
   renderTagPicker();
   renderTagCloud();
@@ -724,7 +723,7 @@ function showAnonApp() {
   document.body.classList.add('anon');
   document.getElementById('main-app').style.display = 'grid';
   const m = document.getElementById('motto-text');
-  m.innerHTML = 'tell your true story the only way you really can. anonymously.';
+  m.innerHTML = 'tell your true story. the only way true stories can really be told. anonymously.';
   m.classList.add('manifesto');
   renderTagCloud();
   loadPosts();
@@ -820,12 +819,17 @@ async function signOut() {
 
 // VIEWS
 function showView(v) {
+  // Auth-required views: prompt signup for anon visitors instead of switching
+  if (!ME && (v === 'bookmarks' || v === 'following' || v === 'dm' || v === 'journal' || v === 'settings')) {
+    openAuth('signup');
+    return;
+  }
   document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
   document.getElementById('view-'+v).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   document.getElementById('nav-'+v)?.classList.add('active');
   document.getElementById('feed-tabs').style.display = 'none';
-  const mottos = {feed:'tell your true story the only way you really can. anonymously.',bookmarks:'your saved entries.',following:'writers you follow.',dm:'messages.',journal:'your journal.',settings:'settings.'};
+  const mottos = {feed:'tell your true story. the only way true stories can really be told. anonymously.',bookmarks:'your saved entries.',following:'writers you follow.',dm:'messages.',journal:'your journal.',settings:'settings.'};
   const mottoEl = document.getElementById('motto-text');
   mottoEl.innerHTML = mottos[v] || 'tell your true story.';
   mottoEl.classList.toggle('manifesto', v === 'feed');
