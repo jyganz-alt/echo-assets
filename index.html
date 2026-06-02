@@ -267,7 +267,14 @@ window.addEventListener('load', function() {
     body.anon #feed-tabs { display: none !important; }
     body.anon .btn-signout { display: none; }
     body:not(.anon) .btn-signin { display: none; }
-    body:not(.anon) .anon-hero { display: none; }
+    body.anon .user-info { display: none; }
+    /* hero is shown for both anon and signed-in; compose is hidden until requested */
+    body:not(.anon) .compose { display: none; }
+    .user-info { display: flex; align-items: center; gap: 12px; }
+    .user-info .user-handle { color: #fff; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; }
+    .user-info .user-handle .at { color: #ff4d1c; }
+    .user-info .signout-link { background: none; border: none; color: #888; font-family: 'DM Sans', sans-serif; font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; cursor: pointer; padding: 0; }
+    .user-info .signout-link:hover { color: #fff; }
     .btn-signin { background: #ff4d1c; border: none; color: #fff; font-family: 'DM Sans', sans-serif; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; padding: 6px 14px; cursor: pointer; }
     .btn-signin:hover { background: #e03d10; }
     .anon-hero { background: #1a1a1a; color: #fff; padding: 48px 24px 40px; text-align: center; border-bottom: 2px solid #1a1a1a; }
@@ -392,7 +399,10 @@ window.addEventListener('load', function() {
       <span class="header-logo">ech<span class="o">o</span><span class="logo-colon"></span></span>
     </div>
     <button class="btn-signin" onclick="openAuth('signup')">Sign in / Sign up</button>
-    <button class="btn-signout" onclick="signOut()">Sign out</button>
+    <div class="user-info">
+      <span class="user-handle"><span class="at">@</span><span id="header-username">–</span></span>
+      <button class="signout-link" onclick="signOut()">sign out</button>
+    </div>
   </div>
 
   <div class="sidebar">
@@ -426,7 +436,7 @@ window.addEventListener('load', function() {
       <div class="anon-hero">
         <div class="anon-hero-logo">ech<span class="o">o</span><span class="logo-colon"></span></div>
         <div class="anon-hero-cta">
-          <button class="anon-hero-btn" onclick="openAuth('signup')">Start your own</button>
+          <button class="anon-hero-btn" onclick="startEntry()">Start your own</button>
           <button class="anon-hero-btn secondary" onclick="document.querySelector('.feed .post')?.scrollIntoView({behavior:'smooth', block:'start'})">Browse stories</button>
         </div>
       </div>
@@ -648,6 +658,7 @@ function updateSidebarProfile() {
   document.getElementById('sidebar-av').textContent = ME.username.slice(0,2).toUpperCase();
   document.getElementById('compose-handle-label').textContent = '@' + ME.username;
   document.getElementById('journal-title').textContent = 'My Journal — @' + ME.username;
+  document.getElementById('header-username').textContent = ME.username;
 }
 
 function showApp() {
@@ -655,8 +666,8 @@ function showApp() {
   document.getElementById('auth-overlay').style.display = 'none';
   document.getElementById('main-app').style.display = 'grid';
   const m = document.getElementById('motto-text');
-  m.innerHTML = 'tell your true story.';
-  m.classList.remove('manifesto');
+  m.innerHTML = 'tell your true story the only way you really can. anonymously.';
+  m.classList.add('manifesto');
   renderTagPicker();
   renderTagCloud();
   document.getElementById('compose-ts').textContent = nowStamp();
@@ -664,6 +675,16 @@ function showApp() {
   loadPosts();
   loadRightPanel();
   loadTagsFromDB();
+}
+
+// "Start your own" button: opens signup if anon, otherwise reveals the compose form.
+function startEntry() {
+  if (!ME) { openAuth('signup'); return; }
+  const compose = document.querySelector('.compose');
+  if (!compose) return;
+  compose.style.display = 'block';
+  compose.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  setTimeout(() => document.getElementById('compose-text')?.focus(), 400);
 }
 
 function showAnonApp() {
@@ -771,10 +792,10 @@ function showView(v) {
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   document.getElementById('nav-'+v)?.classList.add('active');
   document.getElementById('feed-tabs').style.display = 'none';
-  const mottos = {feed:'tell your true story.',bookmarks:'your saved entries.',following:'writers you follow.',dm:'messages.',journal:'your journal.',settings:'settings.'};
+  const mottos = {feed:'tell your true story the only way you really can. anonymously.',bookmarks:'your saved entries.',following:'writers you follow.',dm:'messages.',journal:'your journal.',settings:'settings.'};
   const mottoEl = document.getElementById('motto-text');
   mottoEl.innerHTML = mottos[v] || 'tell your true story.';
-  mottoEl.classList.remove('manifesto');
+  mottoEl.classList.toggle('manifesto', v === 'feed');
   if (v==='feed') { document.getElementById('feed-tabs').style.display='flex'; loadPosts(); }
   if (v==='bookmarks') loadBookmarks();
   if (v==='following') loadFollowingFeed();
