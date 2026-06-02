@@ -37,6 +37,24 @@ window.addEventListener('load', function() {
     <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { font-family: 'DM Sans', sans-serif; background: #f0ede6; overflow-x: hidden; }
+    /* On wider viewports, paint the body background to mirror the column shading:
+       darker behind the sidebar column (extending to the left viewport edge) and
+       behind the right-panel column (extending to the right edge). This makes the
+       rails feel like full-height bands instead of stopping where their content does. */
+    @media (min-width: 1013px) {
+      html, body {
+        background:
+          linear-gradient(
+            to right,
+            #e8e3da 0,
+            #e8e3da calc(50vw - 434px),
+            #f0ede6 calc(50vw - 434px),
+            #f0ede6 calc(50vw + 286px),
+            #e8e3da calc(50vw + 286px),
+            #e8e3da 100%
+          ) fixed;
+      }
+    }
     .app { display: grid; grid-template-columns: 72px minmax(0, 720px) 220px; max-width: 1012px; margin: 0 auto; min-height: 100vh; }
     /* Sidebar sticks to the top of the viewport while the page scrolls naturally below;
        right-panel just scrolls with the page so there's only one scrollbar (at viewport edge). */
@@ -209,9 +227,7 @@ window.addEventListener('load', function() {
     .btn-modal-confirm { background: #ff4d1c; color: #fff; border: none; font-family: 'DM Sans', sans-serif; font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 7px 14px; cursor: pointer; }
     .btn-modal-cancel { background: none; border: 1.5px solid #c5bfb5; font-family: 'DM Sans', sans-serif; font-size: 10px; color: #888; text-transform: uppercase; padding: 6px 10px; cursor: pointer; }
 
-    .right-panel { background: #e8e3da; border-left: 1px solid #c5bfb5; display: flex; flex-direction: column; position: relative; }
-    /* Extend the right-panel's darker background to the viewport's right edge */
-    .right-panel::after { content: ''; position: absolute; top: 0; bottom: 0; left: 100%; width: max(0px, calc((100vw - 1012px) / 2)); background: #e8e3da; pointer-events: none; }
+    .right-panel { background: #e8e3da; border-left: 1px solid #c5bfb5; display: flex; flex-direction: column; }
     .right-panel-section { padding: 14px 16px; border-bottom: 1px solid #d5cfc5; }
     .right-panel-section:last-child { border-bottom: none; }
     .right-panel-title { font-size: 10px; font-weight: 700; color: #1a1a1a; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; border-bottom: 2px solid #1a1a1a; padding-bottom: 5px; }
@@ -274,7 +290,7 @@ window.addEventListener('load', function() {
     /* ===== Anon (unauthenticated) experience ===== */
     body.anon .compose { display: none !important; }
     body.anon .sidebar-profile { display: none; }
-    body.anon #nav-search, body.anon #nav-alerts, body.anon #nav-following, body.anon #nav-bookmarks, body.anon #nav-dm, body.anon #nav-journal, body.anon #nav-settings { display: none; }
+    body.anon #nav-alerts, body.anon #nav-following, body.anon #nav-bookmarks, body.anon #nav-dm, body.anon #nav-journal, body.anon #nav-settings { display: none; }
     body.anon #feed-tabs { display: none !important; }
     body.anon .btn-signout { display: none; }
     body:not(.anon) .btn-signin { display: none; }
