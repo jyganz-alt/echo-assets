@@ -41,7 +41,8 @@ window.addEventListener('load', function() {
     /* Sidebar sticks to the top of the viewport while the page scrolls naturally below;
        right-panel just scrolls with the page so there's only one scrollbar (at viewport edge). */
     .sidebar { position: sticky; top: 0; align-self: start; }
-    .app-header { grid-column: 1 / -1; background: #1a1a1a; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; }
+    .app-header { background: #1a1a1a; }
+    .app-header-inner { max-width: 1012px; margin: 0 auto; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; }
     .header-logo-line { display: flex; align-items: center; gap: 6px; }
     .header-tagline-left { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 500; white-space: nowrap; }
     .header-logo { font-size: 28px; font-weight: 700; color: #fff; text-transform: lowercase; letter-spacing: -0.04em; line-height: 1; }
@@ -74,7 +75,8 @@ window.addEventListener('load', function() {
     .btn-sm:hover { border-color: #1a1a1a; color: #1a1a1a; }
     .btn-sm.on { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
     .feed { display: flex; flex-direction: column; }
-    .motto-bar { background: #ff4d1c; padding: 10px 20px; position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+    .motto-bar { background: #ff4d1c; }
+    .motto-bar-inner { max-width: 1012px; margin: 0 auto; padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; }
     .motto { font-size: 22px; font-weight: 700; color: #fff; text-transform: lowercase; letter-spacing: -0.02em; line-height: 1; }
     .motto.manifesto { font-size: 13px; font-weight: 500; letter-spacing: 0.06em; }
     .feed-tabs { display: flex; }
@@ -308,12 +310,12 @@ window.addEventListener('load', function() {
       .sidebar { display: none; }
       .right-panel { display: none; }
       /* Header */
-      .app-header { padding: 10px 14px; }
+      .app-header-inner { padding: 10px 14px; }
       .header-logo { font-size: 22px; }
       .btn-signin { font-size: 9px; padding: 6px 10px; letter-spacing: 0.06em; }
       .btn-signout { font-size: 8px; padding: 4px 8px; }
       /* Motto bar */
-      .motto-bar { padding: 8px 12px; }
+      .motto-bar-inner { padding: 8px 12px; }
       .motto { font-size: 16px; }
       .motto.manifesto { font-size: 8px; line-height: 1.7; letter-spacing: 0.02em; white-space: normal; }
       /* Anon hero */
@@ -400,10 +402,11 @@ window.addEventListener('load', function() {
 </div>
 
 <!-- MAIN APP -->
-<div class="app" id="main-app" style="display:none">
-  <div class="app-header">
+<!-- Header + motto-bar live outside .app so their backgrounds stretch edge-to-edge of the viewport;
+     the .app-header-inner / .motto-bar-inner wrappers keep the *content* aligned with the centered columns below. -->
+<div class="app-header">
+  <div class="app-header-inner">
     <div class="header-logo-line">
-      
       <span class="header-logo">ech<span class="o">o</span><span class="logo-colon"></span></span>
     </div>
     <button class="btn-signin" onclick="openAuth('signup')">Sign in / Sign up</button>
@@ -412,7 +415,17 @@ window.addEventListener('load', function() {
       <button class="signout-link" onclick="signOut()">sign out</button>
     </div>
   </div>
-
+</div>
+<div class="motto-bar">
+  <div class="motto-bar-inner">
+    <div class="motto" id="motto-text">tell your true story.</div>
+    <div class="feed-tabs" id="feed-tabs" style="display:none">
+      <div class="feed-tab active" id="tab-all" onclick="switchFeedTab('all')">All</div>
+      <div class="feed-tab" id="tab-following" onclick="switchFeedTab('following')">Following</div>
+    </div>
+  </div>
+</div>
+<div class="app" id="main-app" style="display:none">
   <div class="sidebar">
     <div class="nav-item active" id="nav-feed" title="Home" onclick="showView('feed')"><i class="ti ti-home"></i><span class="nav-label">Home</span></div>
     <div class="nav-item" id="nav-search" title="Search" onclick="showToast('Search coming soon')"><i class="ti ti-search"></i><span class="nav-label">Search</span></div>
@@ -434,14 +447,6 @@ window.addEventListener('load', function() {
   </div>
 
   <div class="feed" id="main-area">
-    <div class="motto-bar">
-      <div class="motto" id="motto-text">tell your true story.</div>
-      <div class="feed-tabs" id="feed-tabs" style="display:none">
-        <div class="feed-tab active" id="tab-all" onclick="switchFeedTab('all')">All</div>
-        <div class="feed-tab" id="tab-following" onclick="switchFeedTab('following')">Following</div>
-      </div>
-    </div>
-
     <div id="view-feed" class="view active">
       <div class="anon-hero">
         <div class="anon-hero-logo">ech<span class="o">o</span><span class="logo-colon"></span></div>
