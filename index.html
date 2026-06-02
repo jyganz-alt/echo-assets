@@ -271,8 +271,7 @@ window.addEventListener('load', function() {
     .btn-signin { background: #ff4d1c; border: none; color: #fff; font-family: 'DM Sans', sans-serif; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; padding: 6px 14px; cursor: pointer; }
     .btn-signin:hover { background: #e03d10; }
     .anon-hero { background: #1a1a1a; color: #fff; padding: 48px 24px 40px; text-align: center; border-bottom: 2px solid #1a1a1a; }
-    .anon-hero-logo { font-size: 64px; font-weight: 700; text-transform: lowercase; letter-spacing: -0.04em; line-height: 1; margin-bottom: 16px; }
-    .anon-hero-pitch { font-size: 22px; font-weight: 700; color: #fff; text-transform: lowercase; letter-spacing: -0.01em; line-height: 1.2; margin-bottom: 32px; }
+    .anon-hero-logo { font-size: 64px; font-weight: 700; text-transform: lowercase; letter-spacing: -0.04em; line-height: 1; margin-bottom: 36px; }
     .anon-hero-logo .o { color: #ff4d1c; }
     .anon-hero-cta { display: inline-flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
     .anon-hero-btn { background: #ff4d1c; border: none; color: #fff; font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; padding: 12px 22px; cursor: pointer; }
@@ -426,7 +425,6 @@ window.addEventListener('load', function() {
     <div id="view-feed" class="view active">
       <div class="anon-hero">
         <div class="anon-hero-logo">ech<span class="o">o</span><span class="logo-colon"></span></div>
-        <div class="anon-hero-pitch">tell your true story</div>
         <div class="anon-hero-cta">
           <button class="anon-hero-btn" onclick="openAuth('signup')">Start your own</button>
           <button class="anon-hero-btn secondary" onclick="document.querySelector('.feed .post')?.scrollIntoView({behavior:'smooth', block:'start'})">Browse stories</button>
@@ -672,7 +670,7 @@ function showAnonApp() {
   document.body.classList.add('anon');
   document.getElementById('main-app').style.display = 'grid';
   const m = document.getElementById('motto-text');
-  m.innerHTML = 'your name is hidden &nbsp;·&nbsp; your username is invented &nbsp;·&nbsp; your story is truth';
+  m.innerHTML = 'tell your true story the only way you really can. anonymously.';
   m.classList.add('manifesto');
   renderTagCloud();
   loadPosts();
