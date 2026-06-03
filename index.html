@@ -1667,9 +1667,20 @@ async function loadJournal() {
     noTitleBanner.style.display = 'block';
   }
 
-  const { data } = await sb.from('posts').select('*').eq('handle', ME.username).order('created_at', {ascending:false});
+  // Filter by user_id (canonical, immutable) rather than handle. The handle
+  // can drift from past posts if the username was changed before posts.handle
+  // got cascade-updated, or if the profile row was recreated under a different
+  // username by the self-heal path.
+  const { data, error } = await sb.from('posts').select('*').eq('user_id', session.user.id).order('created_at', {ascending:false});
+  if (error) { c.innerHTML = '<div class="empty-state">Could not load entries.</div>'; console.error('loadJournal:', error); return; }
   c.innerHTML = '';
   if (!data?.length) { c.innerHTML = '<div class="empty-state">You haven\'t written any entries yet.</div>'; return; }
+  // If any past post still has the old handle, normalize it so other views
+  // (which filter by handle) stay consistent.
+  const stale = data.filter(p => p.handle !== ME.username);
+  if (stale.length) {
+    sb.from('posts').update({ handle: ME.username }).eq('user_id', session.user.id).then(() => {});
+  }
   data.forEach(p => renderPost(p, c));
 }
 
