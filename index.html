@@ -298,7 +298,7 @@ window.addEventListener('load', function() {
     body.anon .user-info { display: none; }
     body.anon .when-auth, body:not(.anon) .when-anon { display: none; }
     /* hero is shown for both anon and signed-in; compose is hidden until requested */
-    body:not(.anon) .compose { display: none; }
+    /* compose now lives inside My Journal and is always visible there for signed-in users */
     .user-info { display: flex; align-items: center; gap: 12px; }
     .user-info .user-handle { color: #fff; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; }
     .user-info .user-handle .at { color: #ff4d1c; }
@@ -475,28 +475,6 @@ window.addEventListener('load', function() {
           <button class="anon-hero-btn secondary" onclick="document.querySelector('.feed .post')?.scrollIntoView({behavior:'smooth', block:'start'})">Browse stories</button>
         </div>
       </div>
-      <div class="compose">
-        <div class="compose-username" id="compose-handle-label">–</div>
-        <div class="compose-meta-row">
-          <div class="meta-field-wrap"><div class="meta-field" id="compose-subject" contenteditable="true" data-placeholder="Subject (optional)"></div></div>
-          <div class="meta-field-wrap"><div class="meta-field" id="compose-location" contenteditable="true" data-placeholder="Location (optional)"></div></div>
-        </div>
-        <div class="compose-body-wrap">
-          <div class="compose-placeholder" id="compose-ph">What changed <span class="ph-in-group">(<em>in</em>)</span> your life today?</div>
-          <textarea class="compose-body" id="compose-text" oninput="handleBodyInput()"></textarea>
-        </div>
-        <div class="tag-picker-label">Tags</div>
-        <div class="tag-row-1" id="tag-row-1"></div>
-        <div class="tag-drawer" id="tag-drawer"></div>
-        <div class="tag-custom-row">
-          <input class="tag-custom-input" id="custom-tag-input" placeholder="Add your own tag…" maxlength="30" onkeydown="if(event.key==='Enter'){event.preventDefault();addCustomTag();}" />
-          <button class="tag-ellipsis-btn" onclick="addCustomTag()" style="border-color:#c5bfb5;color:#888">+ Add</button>
-        </div>
-        <div class="compose-footer">
-          <span class="compose-ts" id="compose-ts"></span>
-          <button class="btn-publish" onclick="submitPost()">Publish</button>
-        </div>
-      </div>
       <div id="posts-container"></div>
 
       <!-- Following new posts section -->
@@ -552,6 +530,29 @@ window.addEventListener('load', function() {
       </div>
       <div id="no-title-banner" style="display:none;padding:12px 20px;border-bottom:1px solid #d5cfc5;background:#f0ede6;">
         <button onclick="promptStoryTitle()" style="background:none;border:1.5px solid #c5bfb5;color:#888;font-family:'DM Sans',sans-serif;font-size:10px;text-transform:uppercase;padding:5px 14px;cursor:pointer;letter-spacing:0.06em;">+ Add a title to your story</button>
+      </div>
+      <!-- Compose form: lives at the top of My Journal so the user can post from here directly -->
+      <div class="compose">
+        <div class="compose-username" id="compose-handle-label">–</div>
+        <div class="compose-meta-row">
+          <div class="meta-field-wrap"><div class="meta-field" id="compose-subject" contenteditable="true" data-placeholder="Subject (optional)"></div></div>
+          <div class="meta-field-wrap"><div class="meta-field" id="compose-location" contenteditable="true" data-placeholder="Location (optional)"></div></div>
+        </div>
+        <div class="compose-body-wrap">
+          <div class="compose-placeholder" id="compose-ph">What changed <span class="ph-in-group">(<em>in</em>)</span> your life today?</div>
+          <textarea class="compose-body" id="compose-text" oninput="handleBodyInput()"></textarea>
+        </div>
+        <div class="tag-picker-label">Tags</div>
+        <div class="tag-row-1" id="tag-row-1"></div>
+        <div class="tag-drawer" id="tag-drawer"></div>
+        <div class="tag-custom-row">
+          <input class="tag-custom-input" id="custom-tag-input" placeholder="Add your own tag…" maxlength="30" onkeydown="if(event.key==='Enter'){event.preventDefault();addCustomTag();}" />
+          <button class="tag-ellipsis-btn" onclick="addCustomTag()" style="border-color:#c5bfb5;color:#888">+ Add</button>
+        </div>
+        <div class="compose-footer">
+          <span class="compose-ts" id="compose-ts"></span>
+          <button class="btn-publish" onclick="submitPost()">Publish</button>
+        </div>
       </div>
       <div id="journal-posts"></div>
     </div>
@@ -799,11 +800,10 @@ function showApp() {
 }
 
 // "Start your own" / "my story" button: opens signup if anon, prompts for story title
-// if missing, otherwise reveals the compose form.
+// if missing, otherwise navigates to My Journal where the compose form lives.
 function startEntry() {
   if (!ME) { openAuth('signup'); return; }
   if (!ME.title) {
-    // First-time setup: must name story before composing. Pre-populate optional fields if known.
     document.getElementById('story-title-input').value = ME.title || '';
     document.getElementById('story-age-input').value = ME.age || '';
     setGenderField('story-gender-input', 'story-gender-custom', ME.gender);
@@ -812,10 +812,7 @@ function startEntry() {
     setTimeout(() => document.getElementById('story-title-input')?.focus(), 200);
     return;
   }
-  const compose = document.querySelector('.compose');
-  if (!compose) return;
-  compose.style.display = 'block';
-  compose.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  showView('journal');
   setTimeout(() => document.getElementById('compose-text')?.focus(), 400);
 }
 
@@ -1165,13 +1162,9 @@ async function saveStoryTitle() {
     pendingPost = null;
     return;
   }
-  // Otherwise reveal the compose form so the user can write their first entry
-  const compose = document.querySelector('.compose');
-  if (compose) {
-    compose.style.display = 'block';
-    compose.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    setTimeout(() => document.getElementById('compose-text')?.focus(), 400);
-  }
+  // Otherwise route the user to My Journal where the compose form lives
+  showView('journal');
+  setTimeout(() => document.getElementById('compose-text')?.focus(), 400);
 }
 
 function promptStoryTitle() {
