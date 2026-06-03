@@ -783,11 +783,28 @@ sb.auth.onAuthStateChange(async (event, session) => {
 });
 
 async function loadProfile(userId) {
-  const { data } = await sb.from('profiles').select('*').eq('id', userId).single();
-  if (data) {
-    ME = data;
-    updateSidebarProfile();
+  let { data } = await sb.from('profiles').select('*').eq('id', userId).maybeSingle();
+  if (!data) {
+    // Profile row missing — likely because signup happened under an unauthenticated
+    // session (email-confirmation flow) and the original insert was blocked by RLS.
+    // Recover by inserting one now using the username we stashed in user_metadata,
+    // or a sanitized prefix of the email as a last resort.
+    const { data: { user } } = await sb.auth.getUser();
+    let uname = (user?.user_metadata?.username || '').toString().toLowerCase().replace(/[^a-z0-9_]/g, '');
+    if (!uname && user?.email) {
+      uname = user.email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 24) || 'user';
+    }
+    // Avoid collision: if the chosen username is taken, suffix with a short id.
+    const { data: clash } = await sb.from('profiles').select('id').eq('username', uname).maybeSingle();
+    if (clash && clash.id !== userId) {
+      uname = (uname + '_' + userId.slice(0, 4)).slice(0, 30);
+    }
+    const { data: created, error: insErr } = await sb.from('profiles').insert({ id: userId, username: uname }).select('*').maybeSingle();
+    if (insErr) { console.error('echo: profile recover failed:', insErr); return; }
+    data = created;
   }
+  ME = data;
+  updateSidebarProfile();
 }
 
 function updateSidebarProfile() {
@@ -897,12 +914,16 @@ async function submitSignup() {
     }
 
     btn.textContent = 'Creating account…';
-    const { data, error } = await sb.auth.signUp({ email, password });
+    // Stash username in auth user_metadata so loadProfile() can recover even if
+    // the profiles insert below is blocked by RLS (e.g. email-confirmation flow
+    // where signUp returns no session yet).
+    const { data, error } = await sb.auth.signUp({ email, password, options: { data: { username } } });
     if (error) throw error;
 
-    // Create profile
+    // Best-effort profile row; if RLS blocks it (no session yet), loadProfile
+    // will create it on the next authenticated load.
     const { error: profileErr } = await sb.from('profiles').insert({ id: data.user.id, username });
-    if (profileErr) throw profileErr;
+    if (profileErr) console.warn('echo: deferred profile insert -', profileErr.message);
 
     showToast('Welcome to echo, @' + username);
   } catch(e) {
