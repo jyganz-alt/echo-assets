@@ -711,12 +711,19 @@ window.addEventListener('load', function() {
 <script>
 const SUPABASE_URL = 'https://hgsbzznejovggpqpqwap.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhnc2J6em5lam92Z2dwcXBxd2FwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNzg4NTcsImV4cCI6MjA5NDc1NDg1N30.xf0Eo-FZYs4YN44VG-I3iPIs2C0oJjrfxAXYU9gSFTs';
+// No-op lock to replace Supabase's default navigatorLock (Web Locks API). The
+// default coordinates auth across tabs by acquiring a same-origin lock — when
+// a previous tab crashed/closed mid-auth or another tab is hung, the lock can
+// be stuck "held" and our getSession() waits forever. echo is single-tab in
+// practice, so we don't need coordination at all.
+const noLock = async (_name, _acquireTimeout, fn) => fn();
+
 // autoRefreshToken: false makes sb.auth.getSession() a purely local read of the
 // cached session. Supabase's built-in auto-refresh has hit hangs against stale
 // refresh tokens, freezing the page on load. We schedule refreshes manually
 // (scheduleRefresh) with a short timeout, so a bad token can never block init.
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-  auth: { persistSession: true, autoRefreshToken: false, detectSessionInUrl: true }
+  auth: { persistSession: true, autoRefreshToken: false, detectSessionInUrl: true, lock: noLock }
 });
 
 function clearStaleAuth() {
