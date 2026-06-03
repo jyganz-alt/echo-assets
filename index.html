@@ -459,7 +459,7 @@ window.addEventListener('load', function() {
 </div>
 <div class="motto-bar">
   <div class="motto-bar-inner">
-    <div class="motto" id="motto-text">tell your true story. the only way true stories can really be told. anonymously.</div>
+    <div class="motto" id="motto-text">tell your story the only way true stories can really be told. anonymously.</div>
     <div class="feed-tabs" id="feed-tabs" style="display:none">
       <div class="feed-tab active" id="tab-all" onclick="switchFeedTab('all')">All</div>
       <div class="feed-tab" id="tab-following" onclick="switchFeedTab('following')">Following</div>
@@ -722,7 +722,7 @@ function showApp() {
   document.getElementById('auth-overlay').style.display = 'none';
   document.getElementById('main-app').style.display = 'grid';
   const m = document.getElementById('motto-text');
-  m.innerHTML = 'tell your true story. the only way true stories can really be told. anonymously.';
+  m.innerHTML = 'tell your story the only way true stories can really be told. anonymously.';
   m.classList.add('manifesto');
   renderTagPicker();
   renderTagCloud();
@@ -747,7 +747,7 @@ function showAnonApp() {
   document.body.classList.add('anon');
   document.getElementById('main-app').style.display = 'grid';
   const m = document.getElementById('motto-text');
-  m.innerHTML = 'tell your true story. the only way true stories can really be told. anonymously.';
+  m.innerHTML = 'tell your story the only way true stories can really be told. anonymously.';
   m.classList.add('manifesto');
   renderTagCloud();
   loadPosts();
@@ -853,7 +853,7 @@ function showView(v) {
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   document.getElementById('nav-'+v)?.classList.add('active');
   document.getElementById('feed-tabs').style.display = 'none';
-  const mottos = {feed:'tell your true story. the only way true stories can really be told. anonymously.',bookmarks:'your saved entries.',following:'writers you follow.',dm:'messages.',journal:'your journal.',settings:'settings.'};
+  const mottos = {feed:'tell your story the only way true stories can really be told. anonymously.',bookmarks:'your saved entries.',following:'writers you follow.',dm:'messages.',journal:'your journal.',settings:'settings.'};
   const mottoEl = document.getElementById('motto-text');
   mottoEl.innerHTML = mottos[v] || 'tell your true story.';
   mottoEl.classList.toggle('manifesto', v === 'feed');
