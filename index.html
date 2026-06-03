@@ -605,9 +605,15 @@ window.addEventListener('load', function() {
     <div id="view-settings" class="view">
       <div style="padding:12px 20px;border-bottom:2px solid #1a1a1a;background:#f0ede6;font-size:12px;font-weight:700;color:#1a1a1a;text-transform:uppercase;">Settings</div>
       <div class="settings-section">
+        <div class="settings-section-title"><i class="ti ti-shield"></i>Privacy</div>
+        <div class="toggle-row"><label class="toggle"><input type="checkbox" id="toggle-allow-comments" onchange="saveSetting('allow_comments', this.checked)" /><span class="toggle-slider"></span></label><div><div class="toggle-label">Allow comments</div><div class="toggle-desc">Let others respond to your entries</div></div></div>
+        <div class="toggle-row"><label class="toggle"><input type="checkbox" id="toggle-allow-dms" onchange="saveSetting('allow_dms', this.checked)" /><span class="toggle-slider"></span></label><div><div class="toggle-label">Allow direct messages</div><div class="toggle-desc">Let others message you privately</div></div></div>
+      </div>
+      <div class="settings-section">
         <div class="settings-section-title"><i class="ti ti-bell"></i>Notifications</div>
-        <div class="toggle-row"><label class="toggle"><input type="checkbox" id="toggle-dm" checked /><span class="toggle-slider"></span></label><div><div class="toggle-label">Direct messages</div><div class="toggle-desc">When you receive a new message</div></div></div>
-        <div class="toggle-row"><label class="toggle"><input type="checkbox" id="toggle-likes" /><span class="toggle-slider"></span></label><div><div class="toggle-label">Likes on my entries</div><div class="toggle-desc">When someone likes your entry</div></div></div>
+        <div class="toggle-row"><label class="toggle"><input type="checkbox" id="toggle-notify-dms" onchange="saveSetting('notify_dms', this.checked)" /><span class="toggle-slider"></span></label><div><div class="toggle-label">Direct messages</div><div class="toggle-desc">When someone sends you a message</div></div></div>
+        <div class="toggle-row"><label class="toggle"><input type="checkbox" id="toggle-notify-comments" onchange="saveSetting('notify_comments', this.checked)" /><span class="toggle-slider"></span></label><div><div class="toggle-label">Comments</div><div class="toggle-desc">When someone comments on your entry</div></div></div>
+        <div class="toggle-row"><label class="toggle"><input type="checkbox" id="toggle-notify-likes" onchange="saveSetting('notify_likes', this.checked)" /><span class="toggle-slider"></span></label><div><div class="toggle-label">Likes</div><div class="toggle-desc">When someone likes your entry</div></div></div>
       </div>
     </div>
   </div>
@@ -935,6 +941,7 @@ function showView(v) {
   if (v==='journal') loadJournal();
   if (v==='dm') { document.getElementById('dm-inbox').style.display='flex'; document.getElementById('dm-convo').classList.remove('open'); loadDMInbox(); }
   if (v==='profile') loadProfileView();
+  if (v==='settings') loadSettingsView();
   currentDMUser = null;
 }
 
@@ -975,6 +982,25 @@ function readGenderField(selectId, customId) {
     return t || null;
   }
   return sel;
+}
+
+function loadSettingsView() {
+  if (!ME) return;
+  // Default to "on" for the allow-* toggles and notification toggles per profile schema defaults
+  document.getElementById('toggle-allow-comments').checked = ME.allow_comments !== false;
+  document.getElementById('toggle-allow-dms').checked = ME.allow_dms !== false;
+  document.getElementById('toggle-notify-dms').checked = ME.notify_dms !== false;
+  document.getElementById('toggle-notify-comments').checked = ME.notify_comments !== false;
+  document.getElementById('toggle-notify-likes').checked = ME.notify_likes === true;
+}
+
+async function saveSetting(key, value) {
+  if (!ME) return;
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return;
+  const { error } = await sb.from('profiles').update({ [key]: value }).eq('id', session.user.id);
+  if (error) { showToast('Could not save — try again'); return; }
+  ME[key] = value;
 }
 
 async function loadProfileView() {
@@ -1067,7 +1093,7 @@ function switchFeedTab(tab) {
 async function loadPosts() {
   const c = document.getElementById('posts-container');
   c.innerHTML = '<div class="empty-state">Loading…</div>';
-  let query = sb.from('posts').select('*, profiles!posts_user_id_fkey(age, gender)').order('created_at', {ascending: false});
+  let query = sb.from('posts').select('*, profiles!posts_user_id_fkey(age, gender, allow_comments)').order('created_at', {ascending: false});
   if (activeFeedTab === 'following' && followedUsers.size > 0) {
     query = query.in('handle', [...followedUsers].map(h => h.replace('@','')));
   } else if (activeFeedTab === 'following') {
@@ -1186,7 +1212,12 @@ function renderPost(p, container, prepend=false) {
   if (p.profiles?.age) profileBits.push(p.profiles.age);
   if (p.profiles?.gender && p.profiles.gender !== 'prefer not to say') profileBits.push(p.profiles.gender);
   const profileMetaHTML = profileBits.map(b => `<span class="post-meta-sep">·</span><span>${b}</span>`).join('');
-  el.innerHTML = `<div class="post-accent"></div><div class="post-meta"><span>entry #${p.entry_num||'–'}</span><span class="post-meta-sep">·</span><span class="post-meta-handle">@${p.handle}</span>${profileMetaHTML}<span class="post-meta-sep">·</span><span>${ts}${locStr}</span></div>${subHTML}<div class="post-body clamped" id="pbody-${p.id}">${p.body}</div>${tagsHTML}<div class="post-actions">${likeBtn}${commentBtn}${bookmarkBtn}${dmBtn}${right}</div><div class="comments-section" id="comments-${p.id}"><div id="clist-${p.id}"></div><div class="comment-input-wrap"><textarea class="c-textarea" id="cinput-${p.id}" placeholder="Write a response…" rows="1"></textarea><div class="c-footer"><span class="c-ts">${nowStamp()}</span><button class="btn-cancel-c" onclick="toggleComments(${p.id})">Cancel</button><button class="btn-reply" onclick="submitComment(${p.id})">Reply</button></div></div></div>`;
+  // Respect post owner's "allow comments" toggle — existing comments stay readable, but no new input
+  const allowComments = p.profiles?.allow_comments !== false;
+  const commentInputHTML = allowComments
+    ? `<div class="comment-input-wrap"><textarea class="c-textarea" id="cinput-${p.id}" placeholder="Write a response…" rows="1"></textarea><div class="c-footer"><span class="c-ts">${nowStamp()}</span><button class="btn-cancel-c" onclick="toggleComments(${p.id})">Cancel</button><button class="btn-reply" onclick="submitComment(${p.id})">Reply</button></div></div>`
+    : `<div style="padding:10px;font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:0.08em;text-align:center;">Comments are turned off for this entry</div>`;
+  el.innerHTML = `<div class="post-accent"></div><div class="post-meta"><span>entry #${p.entry_num||'–'}</span><span class="post-meta-sep">·</span><span class="post-meta-handle">@${p.handle}</span>${profileMetaHTML}<span class="post-meta-sep">·</span><span>${ts}${locStr}</span></div>${subHTML}<div class="post-body clamped" id="pbody-${p.id}">${p.body}</div>${tagsHTML}<div class="post-actions">${likeBtn}${commentBtn}${bookmarkBtn}${dmBtn}${right}</div><div class="comments-section" id="comments-${p.id}"><div id="clist-${p.id}"></div>${commentInputHTML}</div>`;
   if (prepend) container.insertBefore(el, container.firstChild);
   else container.appendChild(el);
   // Add a "Read more" link if the body overflows the 3-line clamp.
@@ -1422,8 +1453,10 @@ async function sendDM() {
   loadDMMessages(currentDMUser);
 }
 
-function openDMFromPost(handle) {
+async function openDMFromPost(handle) {
   if (!ME) { openAuth('signup'); return; }
+  const { data: target } = await sb.from('profiles').select('allow_dms').eq('username', handle).maybeSingle();
+  if (target && target.allow_dms === false) { showToast(`@${handle} is not accepting messages`); return; }
   showView('dm');
   setTimeout(() => openDMConvo(handle), 100);
 }
@@ -1433,8 +1466,9 @@ async function confirmNewDM() {
   const h = document.getElementById('new-dm-handle').value.trim().replace('@','');
   const m = document.getElementById('new-dm-msg').value.trim();
   if (!h || !m) { showToast('Enter a handle and message'); return; }
-  const { data: other } = await sb.from('profiles').select('id').eq('username', h).single();
+  const { data: other } = await sb.from('profiles').select('id, allow_dms').eq('username', h).single();
   if (!other) { showToast('User @'+h+' not found'); return; }
+  if (other.allow_dms === false) { showToast(`@${h} is not accepting messages`); return; }
   const { data: { session } } = await sb.auth.getSession();
   await sb.from('messages').insert({sender_id: session.user.id, receiver_id: other.id, body: m});
   document.getElementById('new-dm-modal').classList.remove('open');
