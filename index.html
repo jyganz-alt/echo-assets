@@ -296,6 +296,7 @@ window.addEventListener('load', function() {
     body.anon .btn-signout { display: none; }
     body:not(.anon) .btn-signin { display: none; }
     body.anon .user-info { display: none; }
+    body.anon .when-auth, body:not(.anon) .when-anon { display: none; }
     /* hero is shown for both anon and signed-in; compose is hidden until requested */
     body:not(.anon) .compose { display: none; }
     .user-info { display: flex; align-items: center; gap: 12px; }
@@ -470,7 +471,7 @@ window.addEventListener('load', function() {
       <div class="anon-hero">
         <div class="anon-hero-logo">ech<span class="o">o</span><span class="logo-colon"></span></div>
         <div class="anon-hero-cta">
-          <button class="anon-hero-btn" onclick="startEntry()">Start your own</button>
+          <button class="anon-hero-btn" onclick="startEntry()"><span class="when-anon">Start your own</span><span class="when-auth">my story</span></button>
           <button class="anon-hero-btn secondary" onclick="document.querySelector('.feed .post')?.scrollIntoView({behavior:'smooth', block:'start'})">Browse stories</button>
         </div>
       </div>
@@ -835,6 +836,8 @@ function showView(v) {
   const mottoEl = document.getElementById('motto-text');
   mottoEl.innerHTML = mottos[v] || 'tell your true story.';
   mottoEl.classList.toggle('manifesto', v === 'feed');
+  // Right-panel content (Popular Feeds) only shows on the Home/feed view
+  document.querySelectorAll('.right-panel-section').forEach(s => { s.style.display = v === 'feed' ? '' : 'none'; });
   if (v==='feed') { document.getElementById('feed-tabs').style.display='flex'; loadPosts(); }
   if (v==='bookmarks') loadBookmarks();
   if (v==='following') loadFollowingFeed();
