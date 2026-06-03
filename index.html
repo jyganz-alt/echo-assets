@@ -47,27 +47,6 @@ window.addEventListener('load', function() {
           linear-gradient(
             to right,
             #e8e3da 0,
-            #e8e3da calc(50vw - 434px),
-            #f0ede6 calc(50vw - 434px),
-            #f0ede6 calc(50vw + 286px),
-            #e8e3da calc(50vw + 286px),
-            #e8e3da 100%
-          ) fixed;
-      }
-    }
-    /* On wide viewports, shift the entire shell right by 74px so the cream feed
-       column lands dead-center in the viewport (the right-panel is 148px wider
-       than the icon rail, which would otherwise leave the feed off-center). */
-    @media (min-width: 1160px) {
-      .app, .app-header-inner, .motto-bar-inner {
-        margin-left: calc(50vw - 432px);
-        margin-right: 0;
-      }
-      html, body {
-        background:
-          linear-gradient(
-            to right,
-            #e8e3da 0,
             #e8e3da calc(50vw - 360px),
             #f0ede6 calc(50vw - 360px),
             #f0ede6 calc(50vw + 360px),
@@ -76,12 +55,12 @@ window.addEventListener('load', function() {
           ) fixed;
       }
     }
-    .app { display: grid; grid-template-columns: 72px minmax(0, 720px) 220px; max-width: 1012px; margin: 0 auto; min-height: 100vh; }
+    .app { display: grid; grid-template-columns: 220px minmax(0, 720px) 220px; max-width: 1160px; margin: 0 auto; min-height: 100vh; }
     /* Sidebar sticks to the top of the viewport while the page scrolls naturally below;
        right-panel just scrolls with the page so there's only one scrollbar (at viewport edge). */
     .sidebar { position: sticky; top: 0; align-self: start; }
     .app-header { background: #1a1a1a; }
-    .app-header-inner { max-width: 1012px; margin: 0 auto; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; }
+    .app-header-inner { max-width: 1160px; margin: 0 auto; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; }
     .header-logo-line { display: flex; align-items: center; gap: 6px; }
     .header-tagline-left { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 500; white-space: nowrap; }
     .header-logo { font-size: 28px; font-weight: 700; color: #fff; text-transform: lowercase; letter-spacing: -0.04em; line-height: 1; }
@@ -117,7 +96,7 @@ window.addEventListener('load', function() {
     .btn-sm.on { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
     .feed { display: flex; flex-direction: column; }
     .motto-bar { background: #ff4d1c; }
-    .motto-bar-inner { max-width: 1012px; margin: 0 auto; padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; }
+    .motto-bar-inner { max-width: 1160px; margin: 0 auto; padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; }
     .motto { font-size: 22px; font-weight: 700; color: #fff; text-transform: lowercase; letter-spacing: -0.02em; line-height: 1; }
     .motto.manifesto { font-size: 13px; font-weight: 500; letter-spacing: 0.06em; }
     .feed-tabs { display: flex; }
