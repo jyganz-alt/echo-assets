@@ -576,16 +576,35 @@ window.addEventListener('load', function() {
 
 </div>
 
-<!-- Story title modal -->
+<!-- Story title modal — shown before the user can compose their first entry -->
 <div class="modal-overlay" id="title-modal">
   <div class="modal">
-    <div class="modal-title">Name your story</div>
-    <p style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:16px;line-height:1.6;">Before your first entry goes live, give your story a title. You can change it any time.</p>
-    <input style="width:100%;border:none;border-bottom:2px solid #1a1a1a;background:transparent;font-family:'DM Sans',sans-serif;font-size:16px;color:#1a1a1a;padding:6px 0;outline:none;margin-bottom:6px;" id="story-title-input" placeholder="e.g. The years I lost and found" maxlength="80" />
+    <div class="modal-title">Before you begin</div>
+    <p style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:16px;line-height:1.6;">Give your story a title. Age and gender are optional — if filled in, they show next to your handle on your entries.</p>
+    <div style="margin-bottom:18px;">
+      <div style="font-size:9px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Story title <span style="color:#cc3300;">*</span></div>
+      <input style="width:100%;border:none;border-bottom:2px solid #1a1a1a;background:transparent;font-family:'DM Sans',sans-serif;font-size:16px;color:#1a1a1a;padding:6px 0;outline:none;" id="story-title-input" placeholder="e.g. The years I lost and found" maxlength="80" />
+    </div>
+    <div style="display:flex;gap:16px;margin-bottom:16px;">
+      <div style="flex:1;">
+        <div style="font-size:9px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Age <span style="color:#bbb;">(optional)</span></div>
+        <input style="width:100%;border:none;border-bottom:2px solid #1a1a1a;background:transparent;font-family:'DM Sans',sans-serif;font-size:15px;color:#1a1a1a;padding:6px 0;outline:none;" id="story-age-input" type="number" min="13" max="120" placeholder="35" />
+      </div>
+      <div style="flex:1.6;">
+        <div style="font-size:9px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Gender <span style="color:#bbb;">(optional)</span></div>
+        <select style="width:100%;border:none;border-bottom:2px solid #1a1a1a;background:transparent;font-family:'DM Sans',sans-serif;font-size:15px;color:#1a1a1a;padding:6px 0;outline:none;cursor:pointer;" id="story-gender-input">
+          <option value="">—</option>
+          <option value="female">Female</option>
+          <option value="male">Male</option>
+          <option value="non-binary">Non-binary</option>
+          <option value="other">Other</option>
+          <option value="prefer not to say">Prefer not to say</option>
+        </select>
+      </div>
+    </div>
     <div style="font-size:9px;color:#cc3300;text-transform:uppercase;margin-bottom:4px;" id="story-title-err"></div>
     <div class="modal-actions">
-      <button class="btn-modal-cancel" onclick="skipStoryTitle()">Skip for now</button>
-      <button class="btn-modal-confirm" onclick="saveStoryTitle()">Save &amp; Publish</button>
+      <button class="btn-modal-confirm" onclick="saveStoryTitle()">Save &amp; continue</button>
     </div>
   </div>
 </div>
@@ -713,9 +732,20 @@ function showApp() {
   loadTagsFromDB();
 }
 
-// "Start your own" button: opens signup if anon, otherwise reveals the compose form.
+// "Start your own" / "my story" button: opens signup if anon, prompts for story title
+// if missing, otherwise reveals the compose form.
 function startEntry() {
   if (!ME) { openAuth('signup'); return; }
+  if (!ME.title) {
+    // First-time setup: must name story before composing. Pre-populate optional fields if known.
+    document.getElementById('story-title-input').value = ME.title || '';
+    document.getElementById('story-age-input').value = ME.age || '';
+    document.getElementById('story-gender-input').value = ME.gender || '';
+    document.getElementById('story-title-err').textContent = '';
+    document.getElementById('title-modal').classList.add('open');
+    setTimeout(() => document.getElementById('story-title-input')?.focus(), 200);
+    return;
+  }
   const compose = document.querySelector('.compose');
   if (!compose) return;
   compose.style.display = 'block';
@@ -858,7 +888,7 @@ function switchFeedTab(tab) {
 async function loadPosts() {
   const c = document.getElementById('posts-container');
   c.innerHTML = '<div class="empty-state">Loading…</div>';
-  let query = sb.from('posts').select('*').order('created_at', {ascending: false});
+  let query = sb.from('posts').select('*, profiles!posts_user_id_fkey(age, gender)').order('created_at', {ascending: false});
   if (activeFeedTab === 'following' && followedUsers.size > 0) {
     query = query.in('handle', [...followedUsers].map(h => h.replace('@','')));
   } else if (activeFeedTab === 'following') {
@@ -884,15 +914,7 @@ async function submitPost() {
   // Get entry count for this user
   const { count } = await sb.from('posts').select('*', {count:'exact',head:true}).eq('user_id', session.user.id);
 
-  // If first post and no story title yet, show title modal first
-  if ((count === 0) && !ME.title) {
-    pendingPost = { subject, location, text, tags: [...selectedTags] };
-    document.getElementById('story-title-input').value = '';
-    document.getElementById('story-title-err').textContent = '';
-    document.getElementById('title-modal').classList.add('open');
-    return;
-  }
-
+  // Title is required before composing (see startEntry), so we can publish directly.
   await doPublishPost({ subject, location, text, tags: [...selectedTags], count });
 }
 
@@ -922,35 +944,43 @@ async function doPublishPost({ subject, location, text, tags, count }) {
 async function saveStoryTitle() {
   const title = document.getElementById('story-title-input').value.trim();
   if (!title) { document.getElementById('story-title-err').textContent = 'Please enter a title'; return; }
+  const ageStr = document.getElementById('story-age-input').value.trim();
+  const age = ageStr ? parseInt(ageStr, 10) : null;
+  const gender = document.getElementById('story-gender-input').value || null;
   const { data: { session } } = await sb.auth.getSession();
-  await sb.from('profiles').update({ title }).eq('id', session.user.id);
+  await sb.from('profiles').update({ title, age, gender }).eq('id', session.user.id);
   ME.title = title;
+  ME.age = age;
+  ME.gender = gender;
   document.getElementById('title-modal').classList.remove('open');
+  // If user was already mid-compose (legacy pendingPost flow), publish it
   if (pendingPost) {
     const { count } = await sb.from('posts').select('*', {count:'exact',head:true}).eq('user_id', session.user.id);
     await doPublishPost({ ...pendingPost, count });
     pendingPost = null;
+    return;
   }
-}
-
-async function skipStoryTitle() {
-  document.getElementById('title-modal').classList.remove('open');
-  if (pendingPost) {
-    const { data: { session } } = await sb.auth.getSession();
-    const { count } = await sb.from('posts').select('*', {count:'exact',head:true}).eq('user_id', session.user.id);
-    await doPublishPost({ ...pendingPost, count });
-    pendingPost = null;
+  // Otherwise reveal the compose form so the user can write their first entry
+  const compose = document.querySelector('.compose');
+  if (compose) {
+    compose.style.display = 'block';
+    compose.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setTimeout(() => document.getElementById('compose-text')?.focus(), 400);
   }
 }
 
 function promptStoryTitle() {
   document.getElementById('story-title-input').value = ME.title || '';
+  document.getElementById('story-age-input').value = ME.age || '';
+  document.getElementById('story-gender-input').value = ME.gender || '';
   document.getElementById('story-title-err').textContent = '';
   document.getElementById('title-modal').classList.add('open');
 }
 
 async function editStoryTitle() {
   document.getElementById('story-title-input').value = ME.title || '';
+  document.getElementById('story-age-input').value = ME.age || '';
+  document.getElementById('story-gender-input').value = ME.gender || '';
   document.getElementById('story-title-err').textContent = '';
   document.getElementById('title-modal').classList.add('open');
 }
@@ -972,7 +1002,12 @@ function renderPost(p, container, prepend=false) {
   let right = isOwner
     ? `<div class="post-owner-actions"><button class="owner-btn" onclick="editPost(${p.id})">Edit</button><button class="owner-btn delete" onclick="deletePost(${p.id})">Delete</button></div>`
     : `<div class="post-owner-actions"><button class="owner-btn follow-btn" onclick="toggleFollow('${p.handle}',this)">Follow</button></div>`;
-  el.innerHTML = `<div class="post-accent"></div><div class="post-meta"><span>entry #${p.entry_num||'–'}</span><span class="post-meta-sep">·</span><span class="post-meta-handle">@${p.handle}</span><span class="post-meta-sep">·</span><span>${ts}${locStr}</span></div>${subHTML}<div class="post-body clamped" id="pbody-${p.id}">${p.body}</div>${tagsHTML}<div class="post-actions">${likeBtn}${commentBtn}${bookmarkBtn}${dmBtn}${right}</div><div class="comments-section" id="comments-${p.id}"><div id="clist-${p.id}"></div><div class="comment-input-wrap"><textarea class="c-textarea" id="cinput-${p.id}" placeholder="Write a response…" rows="1"></textarea><div class="c-footer"><span class="c-ts">${nowStamp()}</span><button class="btn-cancel-c" onclick="toggleComments(${p.id})">Cancel</button><button class="btn-reply" onclick="submitComment(${p.id})">Reply</button></div></div></div>`;
+  // Optional age + gender (skip "prefer not to say" so it doesn't show as a label)
+  const profileBits = [];
+  if (p.profiles?.age) profileBits.push(p.profiles.age);
+  if (p.profiles?.gender && p.profiles.gender !== 'prefer not to say') profileBits.push(p.profiles.gender);
+  const profileMetaHTML = profileBits.map(b => `<span class="post-meta-sep">·</span><span>${b}</span>`).join('');
+  el.innerHTML = `<div class="post-accent"></div><div class="post-meta"><span>entry #${p.entry_num||'–'}</span><span class="post-meta-sep">·</span><span class="post-meta-handle">@${p.handle}</span>${profileMetaHTML}<span class="post-meta-sep">·</span><span>${ts}${locStr}</span></div>${subHTML}<div class="post-body clamped" id="pbody-${p.id}">${p.body}</div>${tagsHTML}<div class="post-actions">${likeBtn}${commentBtn}${bookmarkBtn}${dmBtn}${right}</div><div class="comments-section" id="comments-${p.id}"><div id="clist-${p.id}"></div><div class="comment-input-wrap"><textarea class="c-textarea" id="cinput-${p.id}" placeholder="Write a response…" rows="1"></textarea><div class="c-footer"><span class="c-ts">${nowStamp()}</span><button class="btn-cancel-c" onclick="toggleComments(${p.id})">Cancel</button><button class="btn-reply" onclick="submitComment(${p.id})">Reply</button></div></div></div>`;
   if (prepend) container.insertBefore(el, container.firstChild);
   else container.appendChild(el);
   // Add a "Read more" link if the body overflows the 3-line clamp.
