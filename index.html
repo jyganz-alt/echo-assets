@@ -711,7 +711,19 @@ window.addEventListener('load', function() {
 <script>
 const SUPABASE_URL = 'https://hgsbzznejovggpqpqwap.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhnc2J6em5lam92Z2dwcXBxd2FwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNzg4NTcsImV4cCI6MjA5NDc1NDg1N30.xf0Eo-FZYs4YN44VG-I3iPIs2C0oJjrfxAXYU9gSFTs';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// autoRefreshToken: false makes sb.auth.getSession() a purely local read of the
+// cached session. Supabase's built-in auto-refresh has hit hangs against stale
+// refresh tokens, freezing the page on load. We schedule refreshes manually
+// (scheduleRefresh) with a short timeout, so a bad token can never block init.
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: { persistSession: true, autoRefreshToken: false, detectSessionInUrl: true }
+});
+
+function clearStaleAuth() {
+  try {
+    Object.keys(localStorage).filter(k => k.startsWith('sb-')).forEach(k => localStorage.removeItem(k));
+  } catch(e) {}
+}
 
 let ME = null; // current user profile
 let currentDMUser = null;
@@ -725,60 +737,111 @@ const ROW1_TAGS = ['grief','love','family'];
 const BASE_TAGS = ['grief','love','family','identity','addiction','trauma','joy','faith','loss','friendship','work','childhood','marriage','mental health','travel','illness','money','secrets','forgiveness','loneliness'];
 let allTags = [...BASE_TAGS];
 
+// Unregister any orphan service worker from an older deploy. Runs as fire-and-forget
+// in the background — must NEVER be awaited in init, since on some browsers
+// getRegistrations() can stall.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations()
+    .then(regs => regs.forEach(r => r.unregister().catch(() => {})))
+    .catch(() => {});
+}
+
 // INIT
 window.addEventListener('DOMContentLoaded', async () => {
-  // Safety net #1: regardless of what hangs below, hide the loading screen within
-  // 5 seconds and fall back to the anon view. The user never gets stuck on "echo".
+  // Safety net: page becomes interactive within 2 seconds, no matter what.
   const watchdog = setTimeout(() => {
-    document.getElementById('loading').style.display = 'none';
-    if (document.getElementById('main-app').style.display !== 'grid') {
-      try { showAnonApp(); } catch(e) {}
+    if (document.getElementById('loading').style.display !== 'none') {
+      document.getElementById('loading').style.display = 'none';
+      try { showAnonApp(); } catch(e) { console.error('echo: anon fallback threw:', e); }
+      console.warn('echo: init watchdog tripped at 2s');
     }
-    console.warn('echo: init watchdog tripped, fell back to anon');
-  }, 5000);
-
-  // Defensive: unregister any orphan service worker from an older deploy.
-  // echo doesn't register one, so any registered SW is stale and may be
-  // serving the user old HTML with bugs we've since fixed.
-  try {
-    if ('serviceWorker' in navigator) {
-      const regs = await navigator.serviceWorker.getRegistrations();
-      if (regs.length) await Promise.all(regs.map(r => r.unregister()));
-    }
-  } catch(e) {}
+  }, 2000);
 
   try {
-    // Safety net #2: don't let getSession hang forever. Cap it at 8s; on timeout,
-    // assume no session and proceed as anon. The local auth token is preserved
-    // so the NEXT page load can try again — we never sign the user out here.
-    const sessionPromise = sb.auth.getSession();
-    const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('getSession timeout')), 8000));
-    const { data: { session } } = await Promise.race([sessionPromise, timeout]);
+    // Local-only read (autoRefreshToken disabled above). Should resolve immediately.
+    const { data: { session: cached } } = await sb.auth.getSession();
+
+    if (!cached) {
+      clearTimeout(watchdog);
+      document.getElementById('loading').style.display = 'none';
+      showAnonApp();
+      return;
+    }
+
+    // Decide whether the cached access token is still good (>60s left) or needs
+    // a manual refresh.
+    const nowSec = Math.floor(Date.now() / 1000);
+    let active = cached;
+    if ((cached.expires_at || 0) - nowSec < 60) {
+      try {
+        const refreshP = sb.auth.refreshSession();
+        const timeoutP = new Promise((_, rej) => setTimeout(() => rej(new Error('refresh timeout')), 4000));
+        const { data, error } = await Promise.race([refreshP, timeoutP]);
+        if (error || !data?.session) throw (error || new Error('no session after refresh'));
+        active = data.session;
+      } catch(e) {
+        // Refresh token is dead or unreachable. Clear stale tokens so the next
+        // page load is fast and not stuck on the same bad token.
+        console.warn('echo: refresh failed, clearing stale tokens:', e);
+        clearStaleAuth();
+        clearTimeout(watchdog);
+        document.getElementById('loading').style.display = 'none';
+        showAnonApp();
+        return;
+      }
+    }
+
     clearTimeout(watchdog);
     document.getElementById('loading').style.display = 'none';
-    if (session) {
-      await loadProfile(session.user.id);
-      showApp();
-    } else {
-      showAnonApp();
-    }
+    await loadProfile(active.user.id);
+    showApp();
+    scheduleRefresh(active);
   } catch(e) {
     clearTimeout(watchdog);
     document.getElementById('loading').style.display = 'none';
-    // Fall back to anon view but DO NOT touch localStorage — the session token
-    // stays so the next refresh can pick the user back up. Signing the user out
-    // here was causing every slow refresh to clear them out.
-    showAnonApp();
     console.error('echo: init error, fell back to anon:', e);
+    showAnonApp();
   }
 });
+
+// Manual background refresh: fires ~5 min before the access token expires.
+// On failure, retries once after 60s; if it still fails, the cached session
+// keeps working until it expires and the user is asked to sign in again.
+let refreshTimer = null;
+function scheduleRefresh(session) {
+  clearTimeout(refreshTimer);
+  if (!session?.expires_at) return;
+  const nowSec = Math.floor(Date.now() / 1000);
+  const wait = Math.max(60, session.expires_at - nowSec - 300) * 1000;
+  refreshTimer = setTimeout(async () => {
+    try {
+      const refreshP = sb.auth.refreshSession();
+      const timeoutP = new Promise((_, rej) => setTimeout(() => rej(new Error('refresh timeout')), 6000));
+      const { data, error } = await Promise.race([refreshP, timeoutP]);
+      if (error || !data?.session) throw (error || new Error('no session'));
+      scheduleRefresh(data.session);
+    } catch(e) {
+      console.warn('echo: background refresh failed, retrying in 60s:', e);
+      refreshTimer = setTimeout(async () => {
+        try {
+          const { data } = await sb.auth.refreshSession();
+          if (data?.session) scheduleRefresh(data.session);
+        } catch(e2) { console.warn('echo: retry refresh failed:', e2); }
+      }, 60_000);
+    }
+  }, wait);
+}
 
 sb.auth.onAuthStateChange(async (event, session) => {
   if (event === 'SIGNED_IN' && session) {
     await loadProfile(session.user.id);
     showApp();
+    scheduleRefresh(session);
   } else if (event === 'SIGNED_OUT') {
+    clearTimeout(refreshTimer);
     location.reload();
+  } else if (event === 'TOKEN_REFRESHED' && session) {
+    scheduleRefresh(session);
   }
 });
 
