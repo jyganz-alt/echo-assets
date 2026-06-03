@@ -449,7 +449,7 @@ window.addEventListener('load', function() {
   <div class="sidebar">
     <div class="nav-item active" id="nav-feed" title="Home" onclick="showView('feed')"><i class="ti ti-home"></i><span class="nav-label">Home</span></div>
     <div class="nav-item" id="nav-search" title="Search" onclick="showToast('Search coming soon')"><i class="ti ti-search"></i><span class="nav-label">Search</span></div>
-    <div class="nav-item" id="nav-alerts" title="Alerts" onclick="showToast('Alerts coming soon')"><i class="ti ti-bell"></i><span class="nav-label">Alerts</span></div>
+    <div class="nav-item" id="nav-alerts" title="Alerts" onclick="showView('alerts')"><i class="ti ti-bell"></i><span class="nav-label">Alerts</span></div>
     <div class="nav-item" id="nav-dm" title="Messages" onclick="showView('dm')"><i class="ti ti-message-2"></i><span class="nav-label">Messages</span></div>
     <div class="nav-item" id="nav-following" title="Following" onclick="showView('following')"><i class="ti ti-users"></i><span class="nav-label">Following</span></div>
     <div class="nav-item" id="nav-bookmarks" title="Saved" onclick="showView('bookmarks')"><i class="ti ti-bookmark"></i><span class="nav-label">Saved</span></div>
@@ -555,6 +555,11 @@ window.addEventListener('load', function() {
         </div>
       </div>
       <div id="journal-posts"></div>
+    </div>
+
+    <div id="view-alerts" class="view">
+      <div style="padding:12px 20px;border-bottom:2px solid #1a1a1a;background:#f0ede6;font-size:12px;font-weight:700;color:#1a1a1a;text-transform:uppercase;">Alerts</div>
+      <div id="alerts-container"></div>
     </div>
 
     <div id="view-profile" class="view">
@@ -917,7 +922,7 @@ async function signOut() {
 // VIEWS
 function showView(v) {
   // Auth-required views: prompt signup for anon visitors instead of switching
-  if (!ME && (v === 'bookmarks' || v === 'following' || v === 'dm' || v === 'journal' || v === 'settings' || v === 'profile')) {
+  if (!ME && (v === 'bookmarks' || v === 'following' || v === 'dm' || v === 'journal' || v === 'settings' || v === 'profile' || v === 'alerts')) {
     openAuth('signup');
     return;
   }
@@ -926,7 +931,7 @@ function showView(v) {
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   document.getElementById('nav-'+v)?.classList.add('active');
   document.getElementById('feed-tabs').style.display = 'none';
-  const mottos = {feed:'tell your story the only way true stories can really be told. anonymously.',bookmarks:'your saved entries.',following:'writers you follow.',dm:'messages.',journal:'your journal.',settings:'settings.',profile:'my profile.'};
+  const mottos = {feed:'tell your story the only way true stories can really be told. anonymously.',bookmarks:'your saved entries.',following:'writers you follow.',dm:'messages.',journal:'your journal.',settings:'settings.',profile:'my profile.',alerts:'recent activity.'};
   const mottoEl = document.getElementById('motto-text');
   mottoEl.innerHTML = mottos[v] || 'tell your true story.';
   mottoEl.classList.toggle('manifesto', v === 'feed');
@@ -939,6 +944,7 @@ function showView(v) {
   if (v==='dm') { document.getElementById('dm-inbox').style.display='flex'; document.getElementById('dm-convo').classList.remove('open'); loadDMInbox(); }
   if (v==='profile') loadProfileView();
   if (v==='settings') loadSettingsView();
+  if (v==='alerts') loadAlerts();
   currentDMUser = null;
 }
 
@@ -979,6 +985,131 @@ function readGenderField(selectId, customId) {
     return t || null;
   }
   return sel;
+}
+
+async function loadAlerts() {
+  if (!ME) return;
+  const c = document.getElementById('alerts-container');
+  c.innerHTML = '<div class="empty-state">Loading…</div>';
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return;
+  const myId = session.user.id;
+  try {
+    const [likesRes, commentsRes, messagesRes, followsRes] = await Promise.all([
+      sb.from('likes').select('user_id, post_id, created_at, posts!inner(id, subject, body, likes, comment_count, user_id)').eq('posts.user_id', myId).order('created_at', {ascending:false}).limit(30),
+      sb.from('comments').select('id, user_id, handle, body, created_at, post_id, posts!inner(id, subject, user_id)').eq('posts.user_id', myId).neq('user_id', myId).order('created_at', {ascending:false}).limit(30),
+      sb.from('messages').select('id, sender_id, body, created_at').eq('receiver_id', myId).order('created_at', {ascending:false}).limit(30),
+      sb.from('follows').select('following_id').eq('follower_id', myId)
+    ]);
+    let followingPosts = [];
+    if (followsRes.data?.length) {
+      const ids = followsRes.data.map(f => f.following_id);
+      const { data } = await sb.from('posts').select('id, user_id, handle, subject, body, likes, comment_count, created_at, tags').in('user_id', ids).order('created_at', {ascending:false}).limit(30);
+      followingPosts = data || [];
+    }
+    // Resolve usernames for likers / message senders (commenters already have .handle)
+    const lookupIds = new Set();
+    (likesRes.data || []).forEach(l => l.user_id && lookupIds.add(l.user_id));
+    (messagesRes.data || []).forEach(m => m.sender_id && lookupIds.add(m.sender_id));
+    const profMap = new Map();
+    if (lookupIds.size) {
+      const { data: profs } = await sb.from('profiles').select('id, username').in('id', [...lookupIds]);
+      (profs || []).forEach(p => profMap.set(p.id, p.username));
+    }
+    const alerts = [];
+    (likesRes.data || []).forEach(l => alerts.push({ type:'like', ts:l.created_at, data:l, by:profMap.get(l.user_id) || 'someone' }));
+    (commentsRes.data || []).forEach(co => alerts.push({ type:'comment', ts:co.created_at, data:co, by:co.handle || 'anonymous' }));
+    (messagesRes.data || []).forEach(m => alerts.push({ type:'message', ts:m.created_at, data:m, by:profMap.get(m.sender_id) || 'someone' }));
+    followingPosts.forEach(p => alerts.push({ type:'post', ts:p.created_at, data:p, by:p.handle }));
+    alerts.sort((a, b) => new Date(b.ts) - new Date(a.ts));
+    if (!alerts.length) {
+      c.innerHTML = '<div class="empty-state" style="padding:40px 20px;">No recent activity.</div>';
+      return;
+    }
+    c.innerHTML = '';
+    alerts.forEach(a => renderAlert(a, c));
+  } catch(e) {
+    console.error('loadAlerts error:', e);
+    c.innerHTML = '<div class="empty-state">Could not load alerts.</div>';
+  }
+}
+
+function renderAlert(alert, container) {
+  const div = document.createElement('div');
+  div.className = 'alert-item';
+  div.style.cssText = 'padding:18px 22px;border-bottom:1px solid #d5cfc5;background:#f0ede6;';
+  const ts = fmtTime(alert.ts);
+  let inner = '';
+  let onClick = null;
+  if (alert.type === 'like') {
+    const post = alert.data.posts;
+    inner = `
+      <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">
+        <i class="ti ti-heart-filled" style="color:#ff4d1c;font-size:14px;"></i>
+        <span><span style="color:#ff4d1c;font-weight:700;">@${alert.by}</span> liked your entry</span>
+        <span style="margin-left:auto;font-size:9px;color:#aaa;">${ts}</span>
+      </div>
+      ${post.subject ? `<div style="font-size:14px;font-weight:700;color:#1a1a1a;margin-bottom:4px;">${post.subject}</div>` : ''}
+      <div style="font-size:13px;color:#666;line-height:1.5;margin-bottom:10px;white-space:pre-wrap;">${(post.body||'').slice(0, 180)}${post.body?.length > 180 ? '…' : ''}</div>
+      <div style="display:inline-flex;align-items:center;gap:6px;background:#ff4d1c;color:#fff;padding:5px 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;"><i class="ti ti-heart-filled"></i> ${post.likes||0} ${post.likes === 1 ? 'like' : 'likes'}</div>
+    `;
+    onClick = () => { showView('journal'); setTimeout(() => document.getElementById('post-'+post.id)?.scrollIntoView({behavior:'smooth', block:'center'}), 400); };
+  } else if (alert.type === 'comment') {
+    const post = alert.data.posts;
+    inner = `
+      <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">
+        <i class="ti ti-message-circle-filled" style="color:#ff4d1c;font-size:14px;"></i>
+        <span><span style="color:#ff4d1c;font-weight:700;">@${alert.by}</span> commented on ${post.subject ? '"' + post.subject + '"' : 'your entry'}</span>
+        <span style="margin-left:auto;font-size:9px;color:#aaa;">${ts}</span>
+      </div>
+      <div style="font-size:13px;color:#444;line-height:1.6;font-style:italic;padding:10px 14px;border-left:3px solid #ff4d1c;background:#ebe7df;">"${alert.data.body}"</div>
+    `;
+    onClick = () => { showView('journal'); setTimeout(() => { const el = document.getElementById('post-'+post.id); el?.scrollIntoView({behavior:'smooth', block:'center'}); setTimeout(() => toggleComments(post.id), 600); }, 400); };
+  } else if (alert.type === 'message') {
+    const m = alert.data;
+    const replyId = 'alert-reply-' + m.id;
+    inner = `
+      <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">
+        <i class="ti ti-mail" style="color:#ff4d1c;font-size:14px;"></i>
+        <span><span style="color:#ff4d1c;font-weight:700;">@${alert.by}</span> sent you a message</span>
+        <span style="margin-left:auto;font-size:9px;color:#aaa;">${ts}</span>
+      </div>
+      <div style="font-size:13px;color:#444;line-height:1.6;padding:10px 14px;border-left:3px solid #ff4d1c;background:#ebe7df;margin-bottom:10px;white-space:pre-wrap;">${m.body}</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input id="${replyId}" placeholder="Reply…" style="flex:1;border:1.5px solid #c5bfb5;background:#fff;font-family:'DM Sans',sans-serif;font-size:12px;padding:7px 10px;outline:none;" onkeydown="if(event.key==='Enter'){event.preventDefault();replyFromAlert('${m.sender_id}','${replyId}', this);}" onclick="event.stopPropagation();" />
+        <button onclick="event.stopPropagation();replyFromAlert('${m.sender_id}','${replyId}')" style="background:#1a1a1a;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;padding:7px 14px;cursor:pointer;letter-spacing:0.06em;">Send</button>
+      </div>
+    `;
+    onClick = () => { showView('dm'); setTimeout(() => openDMConvo(alert.by), 200); };
+  } else if (alert.type === 'post') {
+    const p = alert.data;
+    inner = `
+      <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">
+        <i class="ti ti-pencil" style="color:#ff4d1c;font-size:14px;"></i>
+        <span><span style="color:#ff4d1c;font-weight:700;">@${p.handle}</span> posted a new entry</span>
+        <span style="margin-left:auto;font-size:9px;color:#aaa;">${ts}</span>
+      </div>
+      ${p.subject ? `<div style="font-size:14px;font-weight:700;color:#1a1a1a;margin-bottom:4px;">${p.subject}</div>` : ''}
+      <div style="font-size:13px;color:#444;line-height:1.6;white-space:pre-wrap;">${(p.body||'').slice(0, 220)}${p.body?.length > 220 ? '…' : ''}</div>
+    `;
+    onClick = () => { showView('feed'); setTimeout(() => document.getElementById('post-'+p.id)?.scrollIntoView({behavior:'smooth', block:'center'}), 400); };
+  }
+  div.innerHTML = inner;
+  if (onClick) { div.style.cursor = 'pointer'; div.onclick = onClick; }
+  container.appendChild(div);
+}
+
+async function replyFromAlert(senderId, inputId) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  const text = input.value.trim();
+  if (!text) return;
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return;
+  const { error } = await sb.from('messages').insert({ sender_id: session.user.id, receiver_id: senderId, body: text });
+  if (error) { showToast('Could not send'); return; }
+  input.value = '';
+  showToast('Reply sent');
 }
 
 function loadSettingsView() {
