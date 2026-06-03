@@ -746,62 +746,46 @@ if ('serviceWorker' in navigator) {
     .catch(() => {});
 }
 
-// INIT
-window.addEventListener('DOMContentLoaded', async () => {
-  // Safety net: page becomes interactive within 2 seconds, no matter what.
-  const watchdog = setTimeout(() => {
-    if (document.getElementById('loading').style.display !== 'none') {
-      document.getElementById('loading').style.display = 'none';
-      try { showAnonApp(); } catch(e) { console.error('echo: anon fallback threw:', e); }
-      console.warn('echo: init watchdog tripped at 2s');
-    }
-  }, 2000);
-
+// INIT — render the page first, auth in background. Nothing that can hang
+// gets between the user and an interactive page.
+window.addEventListener('DOMContentLoaded', () => {
+  // Render the anon view IMMEDIATELY. No await, no Supabase, no SW, no
+  // network — synchronous DOM mutations only. If a session is restored,
+  // the background coroutine below upgrades to the authed view a beat later.
   try {
-    // Local-only read (autoRefreshToken disabled above). Should resolve immediately.
-    const { data: { session: cached } } = await sb.auth.getSession();
+    document.getElementById('loading').style.display = 'none';
+    showAnonApp();
+  } catch(e) { console.error('echo: showAnonApp threw:', e); }
 
-    if (!cached) {
-      clearTimeout(watchdog);
-      document.getElementById('loading').style.display = 'none';
-      showAnonApp();
-      return;
-    }
+  // Background auth upgrade. Strict timeouts. Never blocks paint.
+  (async () => {
+    try {
+      // Local-only read (autoRefreshToken: false on the client). Should be instant.
+      const sessP = sb.auth.getSession();
+      const sessTO = new Promise((_, rej) => setTimeout(() => rej(new Error('getSession timeout')), 3000));
+      const { data: { session: cached } } = await Promise.race([sessP, sessTO]);
+      if (!cached) return;
 
-    // Decide whether the cached access token is still good (>60s left) or needs
-    // a manual refresh.
-    const nowSec = Math.floor(Date.now() / 1000);
-    let active = cached;
-    if ((cached.expires_at || 0) - nowSec < 60) {
-      try {
-        const refreshP = sb.auth.refreshSession();
-        const timeoutP = new Promise((_, rej) => setTimeout(() => rej(new Error('refresh timeout')), 4000));
-        const { data, error } = await Promise.race([refreshP, timeoutP]);
+      const nowSec = Math.floor(Date.now() / 1000);
+      let active = cached;
+      if ((cached.expires_at || 0) - nowSec < 60) {
+        const refP = sb.auth.refreshSession();
+        const refTO = new Promise((_, rej) => setTimeout(() => rej(new Error('refresh timeout')), 4000));
+        const { data, error } = await Promise.race([refP, refTO]);
         if (error || !data?.session) throw (error || new Error('no session after refresh'));
         active = data.session;
-      } catch(e) {
-        // Refresh token is dead or unreachable. Clear stale tokens so the next
-        // page load is fast and not stuck on the same bad token.
-        console.warn('echo: refresh failed, clearing stale tokens:', e);
-        clearStaleAuth();
-        clearTimeout(watchdog);
-        document.getElementById('loading').style.display = 'none';
-        showAnonApp();
-        return;
       }
+      await loadProfile(active.user.id);
+      showApp();
+      scheduleRefresh(active);
+    } catch(e) {
+      // Cached session unusable. Wipe stale tokens so the next refresh
+      // doesn't repeat the hang. User stays on the anon view that already
+      // painted; the header "Sign in" button is available.
+      console.warn('echo: background auth failed, clearing stale tokens:', e);
+      clearStaleAuth();
     }
-
-    clearTimeout(watchdog);
-    document.getElementById('loading').style.display = 'none';
-    await loadProfile(active.user.id);
-    showApp();
-    scheduleRefresh(active);
-  } catch(e) {
-    clearTimeout(watchdog);
-    document.getElementById('loading').style.display = 'none';
-    console.error('echo: init error, fell back to anon:', e);
-    showAnonApp();
-  }
+  })();
 });
 
 // Manual background refresh: fires ~5 min before the access token expires.
