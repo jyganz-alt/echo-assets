@@ -55,6 +55,27 @@ window.addEventListener('load', function() {
           ) fixed;
       }
     }
+    /* On wide viewports, shift the entire shell right by 74px so the cream feed
+       column lands dead-center in the viewport (the right-panel is 148px wider
+       than the icon rail, which would otherwise leave the feed off-center). */
+    @media (min-width: 1160px) {
+      .app, .app-header-inner, .motto-bar-inner {
+        margin-left: calc(50vw - 432px);
+        margin-right: 0;
+      }
+      html, body {
+        background:
+          linear-gradient(
+            to right,
+            #e8e3da 0,
+            #e8e3da calc(50vw - 360px),
+            #f0ede6 calc(50vw - 360px),
+            #f0ede6 calc(50vw + 360px),
+            #e8e3da calc(50vw + 360px),
+            #e8e3da 100%
+          ) fixed;
+      }
+    }
     .app { display: grid; grid-template-columns: 72px minmax(0, 720px) 220px; max-width: 1012px; margin: 0 auto; min-height: 100vh; }
     /* Sidebar sticks to the top of the viewport while the page scrolls naturally below;
        right-panel just scrolls with the page so there's only one scrollbar (at viewport edge). */
