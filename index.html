@@ -576,14 +576,16 @@ window.addEventListener('load', function() {
           </div>
           <div style="flex:1.6;">
             <div style="font-size:9px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Gender</div>
-            <select id="profile-gender" style="width:100%;border:none;border-bottom:2px solid #1a1a1a;background:transparent;font-family:'DM Sans',sans-serif;font-size:15px;color:#1a1a1a;padding:6px 0;outline:none;cursor:pointer;">
+            <select id="profile-gender" onchange="toggleCustomGender('profile-gender', 'profile-gender-custom')" style="width:100%;border:none;border-bottom:2px solid #1a1a1a;background:transparent;font-family:'DM Sans',sans-serif;font-size:15px;color:#1a1a1a;padding:6px 0;outline:none;cursor:pointer;">
               <option value="">—</option>
               <option value="female">Female</option>
               <option value="male">Male</option>
               <option value="non-binary">Non-binary</option>
               <option value="other">Other</option>
+              <option value="custom">Custom…</option>
               <option value="prefer not to say">Prefer not to say</option>
             </select>
+            <input type="text" id="profile-gender-custom" placeholder="Your gender" maxlength="40" style="display:none;width:100%;border:none;border-bottom:2px solid #1a1a1a;background:transparent;font-family:'DM Sans',sans-serif;font-size:15px;color:#1a1a1a;padding:6px 0;outline:none;margin-top:8px;" />
           </div>
         </div>
         <div style="margin-bottom:24px;">
@@ -648,14 +650,16 @@ window.addEventListener('load', function() {
       </div>
       <div style="flex:1.6;">
         <div style="font-size:9px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Gender <span style="color:#bbb;">(optional)</span></div>
-        <select style="width:100%;border:none;border-bottom:2px solid #1a1a1a;background:transparent;font-family:'DM Sans',sans-serif;font-size:15px;color:#1a1a1a;padding:6px 0;outline:none;cursor:pointer;" id="story-gender-input">
+        <select style="width:100%;border:none;border-bottom:2px solid #1a1a1a;background:transparent;font-family:'DM Sans',sans-serif;font-size:15px;color:#1a1a1a;padding:6px 0;outline:none;cursor:pointer;" id="story-gender-input" onchange="toggleCustomGender('story-gender-input', 'story-gender-custom')">
           <option value="">—</option>
           <option value="female">Female</option>
           <option value="male">Male</option>
           <option value="non-binary">Non-binary</option>
           <option value="other">Other</option>
+          <option value="custom">Custom…</option>
           <option value="prefer not to say">Prefer not to say</option>
         </select>
+        <input type="text" id="story-gender-custom" placeholder="Your gender" maxlength="40" style="display:none;width:100%;border:none;border-bottom:2px solid #1a1a1a;background:transparent;font-family:'DM Sans',sans-serif;font-size:15px;color:#1a1a1a;padding:6px 0;outline:none;margin-top:8px;" />
       </div>
     </div>
     <div style="font-size:9px;color:#cc3300;text-transform:uppercase;margin-bottom:4px;" id="story-title-err"></div>
@@ -796,7 +800,7 @@ function startEntry() {
     // First-time setup: must name story before composing. Pre-populate optional fields if known.
     document.getElementById('story-title-input').value = ME.title || '';
     document.getElementById('story-age-input').value = ME.age || '';
-    document.getElementById('story-gender-input').value = ME.gender || '';
+    setGenderField('story-gender-input', 'story-gender-custom', ME.gender);
     document.getElementById('story-title-err').textContent = '';
     document.getElementById('title-modal').classList.add('open');
     setTimeout(() => document.getElementById('story-title-input')?.focus(), 200);
@@ -934,13 +938,52 @@ function showView(v) {
   currentDMUser = null;
 }
 
+// Helpers shared by the story-title modal and the profile page for the
+// gender select-with-custom-input pattern.
+const STANDARD_GENDERS = ['female','male','non-binary','other','prefer not to say'];
+function toggleCustomGender(selectId, customId) {
+  const select = document.getElementById(selectId);
+  const custom = document.getElementById(customId);
+  if (!select || !custom) return;
+  custom.style.display = select.value === 'custom' ? 'block' : 'none';
+  if (select.value === 'custom') setTimeout(() => custom.focus(), 50);
+}
+function setGenderField(selectId, customId, savedValue) {
+  const select = document.getElementById(selectId);
+  const custom = document.getElementById(customId);
+  if (!select || !custom) return;
+  if (!savedValue) {
+    select.value = '';
+    custom.value = '';
+    custom.style.display = 'none';
+  } else if (STANDARD_GENDERS.includes(savedValue)) {
+    select.value = savedValue;
+    custom.value = '';
+    custom.style.display = 'none';
+  } else {
+    // Anything that isn't one of the standard options is treated as a custom value
+    select.value = 'custom';
+    custom.value = savedValue;
+    custom.style.display = 'block';
+  }
+}
+function readGenderField(selectId, customId) {
+  const sel = document.getElementById(selectId).value;
+  if (!sel) return null;
+  if (sel === 'custom') {
+    const t = document.getElementById(customId).value.trim();
+    return t || null;
+  }
+  return sel;
+}
+
 async function loadProfileView() {
   if (!ME) return;
   const { data: { session } } = await sb.auth.getSession();
   document.getElementById('profile-username').value = ME.username || '';
   document.getElementById('profile-email').value = session?.user?.email || '';
   document.getElementById('profile-age').value = ME.age || '';
-  document.getElementById('profile-gender').value = ME.gender || '';
+  setGenderField('profile-gender', 'profile-gender-custom', ME.gender);
   document.getElementById('profile-title').value = ME.title || '';
 }
 
@@ -950,7 +993,7 @@ async function saveProfile() {
   const newEmail = document.getElementById('profile-email').value.trim();
   const newAgeStr = document.getElementById('profile-age').value.trim();
   const newAge = newAgeStr ? parseInt(newAgeStr, 10) : null;
-  const newGender = document.getElementById('profile-gender').value || null;
+  const newGender = readGenderField('profile-gender', 'profile-gender-custom');
   const newTitle = document.getElementById('profile-title').value.trim();
 
   if (!newUsername) { showToast('Username is required'); return; }
@@ -1082,7 +1125,7 @@ async function saveStoryTitle() {
   if (!title) { document.getElementById('story-title-err').textContent = 'Please enter a title'; return; }
   const ageStr = document.getElementById('story-age-input').value.trim();
   const age = ageStr ? parseInt(ageStr, 10) : null;
-  const gender = document.getElementById('story-gender-input').value || null;
+  const gender = readGenderField('story-gender-input', 'story-gender-custom');
   const { data: { session } } = await sb.auth.getSession();
   await sb.from('profiles').update({ title, age, gender }).eq('id', session.user.id);
   ME.title = title;
@@ -1108,7 +1151,7 @@ async function saveStoryTitle() {
 function promptStoryTitle() {
   document.getElementById('story-title-input').value = ME.title || '';
   document.getElementById('story-age-input').value = ME.age || '';
-  document.getElementById('story-gender-input').value = ME.gender || '';
+  setGenderField('story-gender-input', 'story-gender-custom', ME.gender);
   document.getElementById('story-title-err').textContent = '';
   document.getElementById('title-modal').classList.add('open');
 }
@@ -1116,7 +1159,7 @@ function promptStoryTitle() {
 async function editStoryTitle() {
   document.getElementById('story-title-input').value = ME.title || '';
   document.getElementById('story-age-input').value = ME.age || '';
-  document.getElementById('story-gender-input').value = ME.gender || '';
+  setGenderField('story-gender-input', 'story-gender-custom', ME.gender);
   document.getElementById('story-title-err').textContent = '';
   document.getElementById('title-modal').classList.add('open');
 }
