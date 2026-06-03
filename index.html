@@ -645,10 +645,11 @@ window.addEventListener('DOMContentLoaded', async () => {
   } catch(e) {}
 
   try {
-    // Safety net #2: don't let getSession hang forever. Cap it at 3s; on timeout,
-    // assume no session and proceed as anon.
+    // Safety net #2: don't let getSession hang forever. Cap it at 8s; on timeout,
+    // assume no session and proceed as anon. The local auth token is preserved
+    // so the NEXT page load can try again — we never sign the user out here.
     const sessionPromise = sb.auth.getSession();
-    const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('getSession timeout')), 3000));
+    const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('getSession timeout')), 8000));
     const { data: { session } } = await Promise.race([sessionPromise, timeout]);
     clearTimeout(watchdog);
     document.getElementById('loading').style.display = 'none';
@@ -661,9 +662,9 @@ window.addEventListener('DOMContentLoaded', async () => {
   } catch(e) {
     clearTimeout(watchdog);
     document.getElementById('loading').style.display = 'none';
-    // Safety net #3: if auth failed/timed out, the local token may be corrupt.
-    // Clear it so the next load starts fresh, then show the anon view.
-    try { Object.keys(localStorage).filter(k => k.startsWith('sb-')).forEach(k => localStorage.removeItem(k)); } catch{}
+    // Fall back to anon view but DO NOT touch localStorage — the session token
+    // stays so the next refresh can pick the user back up. Signing the user out
+    // here was causing every slow refresh to clear them out.
     showAnonApp();
     console.error('echo: init error, fell back to anon:', e);
   }
