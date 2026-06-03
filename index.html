@@ -448,7 +448,7 @@ window.addEventListener('load', function() {
 <div class="app" id="main-app" style="display:none">
   <div class="sidebar">
     <div class="nav-item active" id="nav-feed" title="Home" onclick="showView('feed')"><i class="ti ti-home"></i><span class="nav-label">Home</span></div>
-    <div class="nav-item" id="nav-search" title="Search" onclick="showToast('Search coming soon')"><i class="ti ti-search"></i><span class="nav-label">Search</span></div>
+    <div class="nav-item" id="nav-search" title="Search" onclick="showView('search')"><i class="ti ti-search"></i><span class="nav-label">Search</span></div>
     <div class="nav-item" id="nav-alerts" title="Alerts" onclick="showView('alerts')"><i class="ti ti-bell"></i><span class="nav-label">Alerts</span></div>
     <div class="nav-item" id="nav-dm" title="Messages" onclick="showView('dm')"><i class="ti ti-message-2"></i><span class="nav-label">Messages</span></div>
     <div class="nav-item" id="nav-following" title="Following" onclick="showView('following')"><i class="ti ti-users"></i><span class="nav-label">Following</span></div>
@@ -555,6 +555,18 @@ window.addEventListener('load', function() {
         </div>
       </div>
       <div id="journal-posts"></div>
+    </div>
+
+    <div id="view-search" class="view">
+      <div style="padding:12px 20px;border-bottom:2px solid #1a1a1a;background:#f0ede6;font-size:12px;font-weight:700;color:#1a1a1a;text-transform:uppercase;">Search</div>
+      <div style="padding:18px 22px;border-bottom:1px solid #d5cfc5;background:#f0ede6;">
+        <input id="search-input" placeholder="Search entries by word or phrase…" oninput="handleSearchInput()" onkeydown="if(event.key==='Enter'){event.preventDefault();handleSearchInput(true);}" maxlength="60" style="width:100%;border:none;border-bottom:2px solid #1a1a1a;background:transparent;font-family:'DM Sans',sans-serif;font-size:15px;color:#1a1a1a;padding:8px 0;outline:none;" />
+      </div>
+      <div style="padding:18px 22px;border-bottom:1px solid #d5cfc5;background:#f0ede6;">
+        <div style="font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px;">Tags</div>
+        <div id="search-tag-cloud" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+      </div>
+      <div id="search-results"></div>
     </div>
 
     <div id="view-alerts" class="view">
@@ -931,7 +943,7 @@ function showView(v) {
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   document.getElementById('nav-'+v)?.classList.add('active');
   document.getElementById('feed-tabs').style.display = 'none';
-  const mottos = {feed:'tell your story the only way true stories can really be told. anonymously.',bookmarks:'your saved entries.',following:'writers you follow.',dm:'messages.',journal:'your journal.',settings:'settings.',profile:'my profile.',alerts:'recent activity.'};
+  const mottos = {feed:'tell your story the only way true stories can really be told. anonymously.',bookmarks:'your saved entries.',following:'writers you follow.',dm:'messages.',journal:'your journal.',settings:'settings.',profile:'my profile.',alerts:'recent activity.',search:'search.'};
   const mottoEl = document.getElementById('motto-text');
   mottoEl.innerHTML = mottos[v] || 'tell your true story.';
   mottoEl.classList.toggle('manifesto', v === 'feed');
@@ -945,6 +957,7 @@ function showView(v) {
   if (v==='profile') loadProfileView();
   if (v==='settings') loadSettingsView();
   if (v==='alerts') loadAlerts();
+  if (v==='search') loadSearchView();
   currentDMUser = null;
 }
 
@@ -985,6 +998,72 @@ function readGenderField(selectId, customId) {
     return t || null;
   }
   return sel;
+}
+
+// ===== Search view =====
+function loadSearchView() {
+  // Populate the tag suggestions strip from the same tag pool used in compose
+  const cloud = document.getElementById('search-tag-cloud');
+  if (cloud) {
+    cloud.innerHTML = '';
+    (allTags || []).forEach(tag => {
+      const t = document.createElement('span');
+      t.className = 'cloud-tag';
+      t.textContent = tag;
+      t.onclick = () => { document.getElementById('search-input').value = ''; runSearchByTag(tag); };
+      cloud.appendChild(t);
+    });
+  }
+  // Reset results unless the user already had a search in flight
+  const input = document.getElementById('search-input');
+  const results = document.getElementById('search-results');
+  if (input && !input.value.trim()) results.innerHTML = '<div class="empty-state" style="padding:30px 20px;">Tap a tag or type a word to start.</div>';
+}
+
+let searchDebounce = null;
+function handleSearchInput(immediate) {
+  clearTimeout(searchDebounce);
+  const term = document.getElementById('search-input').value.trim();
+  if (!term) {
+    document.getElementById('search-results').innerHTML = '<div class="empty-state" style="padding:30px 20px;">Tap a tag or type a word to start.</div>';
+    return;
+  }
+  const run = () => runSearchByText(term);
+  if (immediate || term.length >= 2) searchDebounce = setTimeout(run, immediate ? 0 : 300);
+}
+
+async function runSearchByText(term) {
+  const c = document.getElementById('search-results');
+  c.innerHTML = '<div class="empty-state" style="padding:30px 20px;">Searching…</div>';
+  // Escape user-supplied term for ilike (% and , are the dangerous ones)
+  const safe = term.replace(/[%,]/g, '');
+  const { data, error } = await sb.from('posts')
+    .select('*, profiles!posts_user_id_fkey(age, gender, allow_comments)')
+    .or(`body.ilike.%${safe}%,subject.ilike.%${safe}%`)
+    .order('created_at', {ascending: false})
+    .limit(30);
+  if (error || !data?.length) {
+    c.innerHTML = `<div class="empty-state" style="padding:30px 20px;">No entries match "${safe}".</div>`;
+    return;
+  }
+  c.innerHTML = '';
+  data.forEach(p => renderPost(p, c));
+}
+
+async function runSearchByTag(tag) {
+  const c = document.getElementById('search-results');
+  c.innerHTML = '<div class="empty-state" style="padding:30px 20px;">Loading entries tagged "' + tag + '"…</div>';
+  const { data, error } = await sb.from('posts')
+    .select('*, profiles!posts_user_id_fkey(age, gender, allow_comments)')
+    .contains('tags', [tag])
+    .order('created_at', {ascending: false})
+    .limit(30);
+  if (error || !data?.length) {
+    c.innerHTML = `<div class="empty-state" style="padding:30px 20px;">No entries tagged "${tag}" yet.</div>`;
+    return;
+  }
+  c.innerHTML = '';
+  data.forEach(p => renderPost(p, c));
 }
 
 async function loadAlerts() {
