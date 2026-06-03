@@ -455,7 +455,7 @@ window.addEventListener('load', function() {
     <div class="nav-item" id="nav-bookmarks" title="Saved" onclick="showView('bookmarks')"><i class="ti ti-bookmark"></i><span class="nav-label">Saved</span></div>
     <div class="nav-item" id="nav-journal" title="My Journal" onclick="showView('journal')"><i class="ti ti-writing"></i><span class="nav-label">My Journal</span></div>
     <div class="nav-item" id="nav-settings" title="Settings" onclick="showView('settings')"><i class="ti ti-settings"></i><span class="nav-label">Settings</span></div>
-    <div class="sidebar-profile">
+    <div class="sidebar-profile" title="My profile" style="cursor:pointer;" onclick="showView('profile')">
       <div class="avatar av-you" id="sidebar-av">–</div>
       <div><div class="profile-name" id="sidebar-name">–</div><div class="profile-handle" id="sidebar-handle">–</div></div>
     </div>
@@ -556,6 +556,50 @@ window.addEventListener('load', function() {
       <div id="journal-posts"></div>
     </div>
 
+    <div id="view-profile" class="view">
+      <div style="padding:12px 20px;border-bottom:2px solid #1a1a1a;background:#f0ede6;font-size:12px;font-weight:700;color:#1a1a1a;text-transform:uppercase;">My profile</div>
+      <div style="padding:24px 24px 40px;">
+        <div style="margin-bottom:18px;">
+          <div style="font-size:9px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Username</div>
+          <input id="profile-username" maxlength="30" style="width:100%;border:none;border-bottom:2px solid #1a1a1a;background:transparent;font-family:'DM Sans',sans-serif;font-size:16px;color:#1a1a1a;padding:6px 0;outline:none;" />
+          <div style="font-size:10px;color:#888;margin-top:4px;">Your @handle. Changing it updates all your entries and comments.</div>
+        </div>
+        <div style="margin-bottom:18px;">
+          <div style="font-size:9px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Email</div>
+          <input id="profile-email" type="email" style="width:100%;border:none;border-bottom:2px solid #1a1a1a;background:transparent;font-family:'DM Sans',sans-serif;font-size:16px;color:#1a1a1a;padding:6px 0;outline:none;" />
+          <div style="font-size:10px;color:#888;margin-top:4px;">Used to sign in. Changing it sends a confirmation link to the new address.</div>
+        </div>
+        <div style="display:flex;gap:16px;margin-bottom:18px;">
+          <div style="flex:1;">
+            <div style="font-size:9px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Age</div>
+            <input id="profile-age" type="number" min="13" max="120" style="width:100%;border:none;border-bottom:2px solid #1a1a1a;background:transparent;font-family:'DM Sans',sans-serif;font-size:15px;color:#1a1a1a;padding:6px 0;outline:none;" />
+          </div>
+          <div style="flex:1.6;">
+            <div style="font-size:9px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Gender</div>
+            <select id="profile-gender" style="width:100%;border:none;border-bottom:2px solid #1a1a1a;background:transparent;font-family:'DM Sans',sans-serif;font-size:15px;color:#1a1a1a;padding:6px 0;outline:none;cursor:pointer;">
+              <option value="">—</option>
+              <option value="female">Female</option>
+              <option value="male">Male</option>
+              <option value="non-binary">Non-binary</option>
+              <option value="other">Other</option>
+              <option value="prefer not to say">Prefer not to say</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-bottom:24px;">
+          <div style="font-size:9px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Journal title</div>
+          <input id="profile-title" maxlength="80" style="width:100%;border:none;border-bottom:2px solid #1a1a1a;background:transparent;font-family:'DM Sans',sans-serif;font-size:16px;color:#1a1a1a;padding:6px 0;outline:none;" />
+        </div>
+        <button onclick="saveProfile()" style="background:#1a1a1a;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;padding:10px 22px;cursor:pointer;">Save changes</button>
+
+        <div style="margin-top:48px;padding-top:24px;border-top:1px solid #d5cfc5;">
+          <div style="font-size:10px;font-weight:700;color:#cc3300;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;">Danger zone</div>
+          <div style="font-size:12px;color:#555;line-height:1.6;margin-bottom:14px;">Permanently delete your account and everything you have written here — your story, all entries, comments, and messages. This cannot be undone.</div>
+          <button onclick="confirmDeleteAccount()" style="background:none;color:#cc3300;border:1.5px solid #cc3300;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;padding:8px 18px;cursor:pointer;">Delete my account</button>
+        </div>
+      </div>
+    </div>
+
     <div id="view-settings" class="view">
       <div style="padding:12px 20px;border-bottom:2px solid #1a1a1a;background:#f0ede6;font-size:12px;font-weight:700;color:#1a1a1a;text-transform:uppercase;">Settings</div>
       <div class="settings-section">
@@ -574,6 +618,18 @@ window.addEventListener('load', function() {
     </div>
   </div>
 
+</div>
+
+<!-- Delete-account confirmation modal -->
+<div class="modal-overlay" id="delete-confirm-modal">
+  <div class="modal">
+    <div class="modal-title" style="color:#cc3300;">Are you sure?</div>
+    <p style="font-size:12px;color:#555;line-height:1.6;margin-bottom:18px;">This will permanently delete your account, your story title, all your entries, comments, bookmarks, follows, and messages. You will not be able to recover them. This cannot be undone.</p>
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="closeDeleteConfirm()">Cancel</button>
+      <button class="btn-modal-confirm" style="background:#cc3300;" onclick="doDeleteAccount()">Yes, delete my account</button>
+    </div>
+  </div>
 </div>
 
 <!-- Story title modal — shown before the user can compose their first entry -->
@@ -854,7 +910,7 @@ async function signOut() {
 // VIEWS
 function showView(v) {
   // Auth-required views: prompt signup for anon visitors instead of switching
-  if (!ME && (v === 'bookmarks' || v === 'following' || v === 'dm' || v === 'journal' || v === 'settings')) {
+  if (!ME && (v === 'bookmarks' || v === 'following' || v === 'dm' || v === 'journal' || v === 'settings' || v === 'profile')) {
     openAuth('signup');
     return;
   }
@@ -863,7 +919,7 @@ function showView(v) {
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   document.getElementById('nav-'+v)?.classList.add('active');
   document.getElementById('feed-tabs').style.display = 'none';
-  const mottos = {feed:'tell your story the only way true stories can really be told. anonymously.',bookmarks:'your saved entries.',following:'writers you follow.',dm:'messages.',journal:'your journal.',settings:'settings.'};
+  const mottos = {feed:'tell your story the only way true stories can really be told. anonymously.',bookmarks:'your saved entries.',following:'writers you follow.',dm:'messages.',journal:'your journal.',settings:'settings.',profile:'my profile.'};
   const mottoEl = document.getElementById('motto-text');
   mottoEl.innerHTML = mottos[v] || 'tell your true story.';
   mottoEl.classList.toggle('manifesto', v === 'feed');
@@ -874,7 +930,87 @@ function showView(v) {
   if (v==='following') loadFollowingFeed();
   if (v==='journal') loadJournal();
   if (v==='dm') { document.getElementById('dm-inbox').style.display='flex'; document.getElementById('dm-convo').classList.remove('open'); loadDMInbox(); }
+  if (v==='profile') loadProfileView();
   currentDMUser = null;
+}
+
+async function loadProfileView() {
+  if (!ME) return;
+  const { data: { session } } = await sb.auth.getSession();
+  document.getElementById('profile-username').value = ME.username || '';
+  document.getElementById('profile-email').value = session?.user?.email || '';
+  document.getElementById('profile-age').value = ME.age || '';
+  document.getElementById('profile-gender').value = ME.gender || '';
+  document.getElementById('profile-title').value = ME.title || '';
+}
+
+async function saveProfile() {
+  if (!ME) return;
+  const newUsername = document.getElementById('profile-username').value.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+  const newEmail = document.getElementById('profile-email').value.trim();
+  const newAgeStr = document.getElementById('profile-age').value.trim();
+  const newAge = newAgeStr ? parseInt(newAgeStr, 10) : null;
+  const newGender = document.getElementById('profile-gender').value || null;
+  const newTitle = document.getElementById('profile-title').value.trim();
+
+  if (!newUsername) { showToast('Username is required'); return; }
+  if (!newTitle) { showToast('Journal title is required'); return; }
+
+  const { data: { session } } = await sb.auth.getSession();
+  const myId = session.user.id;
+
+  // If username changed, check uniqueness first
+  if (newUsername !== ME.username) {
+    const { data: existing } = await sb.from('profiles').select('id').eq('username', newUsername).maybeSingle();
+    if (existing && existing.id !== myId) { showToast('That username is already taken'); return; }
+  }
+
+  try {
+    const { error: profErr } = await sb.from('profiles').update({ username: newUsername, age: newAge, gender: newGender, title: newTitle }).eq('id', myId);
+    if (profErr) throw profErr;
+
+    // Cascade username changes to denormalized handle fields on posts and comments
+    if (newUsername !== ME.username) {
+      await sb.from('posts').update({ handle: newUsername }).eq('user_id', myId);
+      await sb.from('comments').update({ handle: newUsername }).eq('user_id', myId);
+    }
+
+    // Email change goes through Supabase auth (sends confirmation link)
+    let emailNote = '';
+    if (newEmail && newEmail !== session.user.email) {
+      const { error: emailErr } = await sb.auth.updateUser({ email: newEmail });
+      if (emailErr) throw emailErr;
+      emailNote = ' Check the new email to confirm.';
+    }
+
+    ME.username = newUsername;
+    ME.age = newAge;
+    ME.gender = newGender;
+    ME.title = newTitle;
+    updateSidebarProfile();
+    showToast('Profile saved.' + emailNote);
+  } catch(e) {
+    showToast('Error: ' + (e.message || 'try again'));
+  }
+}
+
+function confirmDeleteAccount() {
+  document.getElementById('delete-confirm-modal').classList.add('open');
+}
+function closeDeleteConfirm() {
+  document.getElementById('delete-confirm-modal').classList.remove('open');
+}
+async function doDeleteAccount() {
+  try {
+    const { error } = await sb.rpc('delete_my_account');
+    if (error) throw error;
+    await sb.auth.signOut();
+    closeDeleteConfirm();
+    showToast('Account deleted.');
+    setTimeout(() => location.reload(), 700);
+  } catch(e) {
+    showToast('Error: ' + (e.message || 'try again'));
+  }
 }
 
 function switchFeedTab(tab) {
