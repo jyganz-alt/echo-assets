@@ -61,8 +61,10 @@ window.addEventListener('load', function() {
     .sidebar { position: sticky; top: 0; align-self: start; }
     .app-header { background: #1a1a1a; }
     .app-header-inner { padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; }
-    .header-logo-line { display: flex; align-items: center; gap: 6px; }
-    .header-tagline-left { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 500; white-space: nowrap; }
+    .header-logo-line { display: flex; align-items: center; gap: 6px; min-width: 0; }
+    /* Usernames run up to 30 characters; on a narrow phone that pushes the handle
+       hard against the tagline. Let the tagline give way and ellipsis instead. */
+    .header-tagline-left { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 500; white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
     .header-logo { font-size: 28px; font-weight: 700; color: #fff; text-transform: lowercase; letter-spacing: -0.04em; line-height: 1; }
     .header-logo .o { color: #ff4d1c; }
     .btn-signout { background: none; border: 1px solid #555; color: #aaa; font-family: 'DM Sans', sans-serif; font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; padding: 4px 10px; cursor: pointer; }
@@ -259,6 +261,10 @@ window.addEventListener('load', function() {
     .logo-colon::after  { bottom: 0.040em; } /* lower dot */
     .auth-tagline { font-size: 9px; color: #555; text-transform: uppercase; letter-spacing: 0.14em; font-weight: 500; text-align: center; line-height: 2; }
     .auth-right { flex: 1; background: #f0ede6; display: flex; flex-direction: column; justify-content: center; padding: 40px; overflow-y: auto; }
+    /* Panel heading above the signup/signin forms. Scales with the viewport so it
+       stays on one line on a laptop and doesn't crowd the form on a phone. */
+    .auth-brand { font-size: clamp(20px, 3.2vw, 34px); font-weight: 700; color: #1a1a1a; text-transform: lowercase; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 22px; }
+    .auth-brand .o { color: #ff4d1c; }
     .auth-view { display: none; } .auth-view.active { display: block; }
     .auth-title { font-size: 16px; font-weight: 700; color: #1a1a1a; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
     .auth-sub { font-size: 10px; color: #aaa; text-transform: lowercase; letter-spacing: 0.06em; margin-bottom: 28px; line-height: 1.6; }
@@ -299,7 +305,7 @@ window.addEventListener('load', function() {
     body.anon .when-auth, body:not(.anon) .when-anon { display: none; }
     /* hero is shown for both anon and signed-in; compose is hidden until requested */
     /* compose now lives inside My Journal and is always visible there for signed-in users */
-    .user-info { display: flex; align-items: center; gap: 12px; }
+    .user-info { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
     .user-info .user-handle { color: #fff; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; }
     .user-info .user-handle .at { color: #ff4d1c; }
     .user-info .signout-link { background: none; border: none; color: #888; font-family: 'DM Sans', sans-serif; font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; cursor: pointer; padding: 0; }
@@ -332,6 +338,10 @@ window.addEventListener('load', function() {
       /* Header */
       .app-header-inner { padding: 10px 14px; }
       .header-logo { font-size: 22px; }
+      /* At 10px/0.12em the tagline needs ~152px, more than a phone header has left
+         once a handle sits opposite it — tighten it so it reads in full instead of
+         ellipsising away for anyone with an average-length username. */
+      .header-tagline-left { font-size: 8px; letter-spacing: 0.05em; }
       .btn-signin { font-size: 9px; padding: 6px 10px; letter-spacing: 0.06em; }
       .btn-signout { font-size: 8px; padding: 4px 8px; }
       /* Motto bar */
@@ -380,6 +390,7 @@ window.addEventListener('load', function() {
     <div class="auth-tagline">the lingering sound<br>a voice leaves behind<br>in a vast empty space</div>
   </div>
   <div class="auth-right">
+    <div class="auth-brand">ech<span class="o">o</span>: anonymous journaling</div>
     <div class="auth-view active" id="auth-signup">
       <div class="auth-title">Create your account</div>
       <div class="auth-sub">your identity is hidden. your username is invented. your story is truth.</div>
@@ -428,6 +439,7 @@ window.addEventListener('load', function() {
   <div class="app-header-inner">
     <div class="header-logo-line">
       <span class="header-logo">ech<span class="o">o</span><span class="logo-colon"></span></span>
+      <span class="header-tagline-left">anonymous journaling</span>
     </div>
     <button class="btn-signin" onclick="openAuth('signup')">Sign in / Sign up</button>
     <div class="user-info">
@@ -744,6 +756,21 @@ const ROW1_TAGS = ['grief','love','family'];
 const BASE_TAGS = ['grief','love','family','identity','addiction','trauma','joy','faith','loss','friendship','work','childhood','marriage','mental health','travel','illness','money','secrets','forgiveness','loneliness'];
 let allTags = [...BASE_TAGS];
 
+// Everything rendered on echo — entries, subjects, comments, DMs, handles,
+// story titles, custom gender labels — is typed by a stranger. It all reaches
+// the page through innerHTML, so any of it MUST go through esc() first;
+// otherwise markup in an entry becomes live DOM in every reader's browser.
+const ESC_MAP = { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' };
+function esc(v) {
+  if (v === null || v === undefined) return '';
+  return String(v).replace(/[&<>"']/g, c => ESC_MAP[c]);
+}
+// For a value interpolated into a JS string inside an HTML attribute, e.g.
+// onclick="toggleFollow('HANDLE',this)". Escape for JS first, then for HTML.
+function escAttrJs(v) {
+  return esc(String(v ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'"));
+}
+
 // Unregister any orphan service worker from an older deploy. Runs as fire-and-forget
 // in the background — must NEVER be awaited in init, since on some browsers
 // getRegistrations() can stall.
@@ -859,6 +886,31 @@ async function loadProfile(userId) {
   }
   ME = data;
   updateSidebarProfile();
+  await loadUserState(userId);
+}
+
+// Follows and bookmarks were tracked only in memory, filled in solely by clicking
+// Follow/Save during that visit. After any reload both sets were empty, so the
+// Following view, the Following feed tab, the "Following New" panel and the saved
+// state of bookmark icons all behaved as though the user followed and saved nothing.
+async function loadUserState(userId) {
+  followedUsers = new Set();
+  bookmarkedIds = new Set();
+  try {
+    const [followsRes, bookmarksRes] = await Promise.all([
+      sb.from('follows').select('following_id').eq('follower_id', userId),
+      sb.from('bookmarks').select('post_id').eq('user_id', userId)
+    ]);
+    (bookmarksRes.data || []).forEach(b => bookmarkedIds.add(b.post_id));
+    const ids = (followsRes.data || []).map(f => f.following_id);
+    if (ids.length) {
+      // The rest of the app keys follows by handle, so resolve ids to usernames.
+      const { data: profs } = await sb.from('profiles').select('username').in('id', ids);
+      (profs || []).forEach(p => followedUsers.add('@' + p.username));
+    }
+  } catch(e) {
+    console.warn('echo: could not load follows/bookmarks:', e);
+  }
 }
 
 function updateSidebarProfile() {
@@ -979,6 +1031,20 @@ async function submitSignup() {
     const { error: profileErr } = await sb.from('profiles').insert({ id: data.user.id, username });
     if (profileErr) console.warn('echo: deferred profile insert -', profileErr.message);
 
+    if (!data.session) {
+      // Email confirmation is on: no session comes back and SIGNED_IN never fires,
+      // so nothing else will move the user off this screen. Say so explicitly
+      // instead of leaving them on a disabled "Creating account…" button.
+      document.getElementById('su-email').value = '';
+      document.getElementById('su-username').value = '';
+      document.getElementById('su-password').value = '';
+      previewHandle();
+      showErr('err-email', 'Almost there — check ' + email + ' for a confirmation link, then sign in.');
+      btn.disabled = false; btn.textContent = 'Create account';
+      return;
+    }
+
+    // Session in hand: onAuthStateChange fires SIGNED_IN and swaps in the app view.
     showToast('Welcome to echo, @' + username);
   } catch(e) {
     showErr('err-email', e.message || 'Something went wrong — please try again');
@@ -1118,7 +1184,7 @@ async function runSearchByText(term) {
     .order('created_at', {ascending: false})
     .limit(30);
   if (error || !data?.length) {
-    c.innerHTML = `<div class="empty-state" style="padding:30px 20px;">No entries match "${safe}".</div>`;
+    c.innerHTML = `<div class="empty-state" style="padding:30px 20px;">No entries match "${esc(safe)}".</div>`;
     return;
   }
   c.innerHTML = '';
@@ -1127,14 +1193,14 @@ async function runSearchByText(term) {
 
 async function runSearchByTag(tag) {
   const c = document.getElementById('search-results');
-  c.innerHTML = '<div class="empty-state" style="padding:30px 20px;">Loading entries tagged "' + tag + '"…</div>';
+  c.innerHTML = '<div class="empty-state" style="padding:30px 20px;">Loading entries tagged "' + esc(tag) + '"…</div>';
   const { data, error } = await sb.from('posts')
     .select('*, profiles!posts_user_id_fkey(age, gender, allow_comments)')
     .contains('tags', [tag])
     .order('created_at', {ascending: false})
     .limit(30);
   if (error || !data?.length) {
-    c.innerHTML = `<div class="empty-state" style="padding:30px 20px;">No entries tagged "${tag}" yet.</div>`;
+    c.innerHTML = `<div class="empty-state" style="padding:30px 20px;">No entries tagged "${esc(tag)}" yet.</div>`;
     return;
   }
   c.innerHTML = '';
@@ -1200,11 +1266,11 @@ function renderAlert(alert, container) {
     inner = `
       <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">
         <i class="ti ti-heart-filled" style="color:#ff4d1c;font-size:14px;"></i>
-        <span><span style="color:#ff4d1c;font-weight:700;">@${alert.by}</span> liked your entry</span>
+        <span><span style="color:#ff4d1c;font-weight:700;">@${esc(alert.by)}</span> liked your entry</span>
         <span style="margin-left:auto;font-size:9px;color:#aaa;">${ts}</span>
       </div>
-      ${post.subject ? `<div style="font-size:14px;font-weight:700;color:#1a1a1a;margin-bottom:4px;">${post.subject}</div>` : ''}
-      <div style="font-size:13px;color:#666;line-height:1.5;margin-bottom:10px;white-space:pre-wrap;">${(post.body||'').slice(0, 180)}${post.body?.length > 180 ? '…' : ''}</div>
+      ${post.subject ? `<div style="font-size:14px;font-weight:700;color:#1a1a1a;margin-bottom:4px;">${esc(post.subject)}</div>` : ''}
+      <div style="font-size:13px;color:#666;line-height:1.5;margin-bottom:10px;white-space:pre-wrap;">${esc((post.body||'').slice(0, 180))}${post.body?.length > 180 ? '…' : ''}</div>
       <div style="display:inline-flex;align-items:center;gap:6px;background:#ff4d1c;color:#fff;padding:5px 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;"><i class="ti ti-heart-filled"></i> ${post.likes||0} ${post.likes === 1 ? 'like' : 'likes'}</div>
     `;
     onClick = () => { showView('journal'); setTimeout(() => document.getElementById('post-'+post.id)?.scrollIntoView({behavior:'smooth', block:'center'}), 400); };
@@ -1213,10 +1279,10 @@ function renderAlert(alert, container) {
     inner = `
       <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">
         <i class="ti ti-message-circle-filled" style="color:#ff4d1c;font-size:14px;"></i>
-        <span><span style="color:#ff4d1c;font-weight:700;">@${alert.by}</span> commented on ${post.subject ? '"' + post.subject + '"' : 'your entry'}</span>
+        <span><span style="color:#ff4d1c;font-weight:700;">@${esc(alert.by)}</span> commented on ${post.subject ? '"' + esc(post.subject) + '"' : 'your entry'}</span>
         <span style="margin-left:auto;font-size:9px;color:#aaa;">${ts}</span>
       </div>
-      <div style="font-size:13px;color:#444;line-height:1.6;font-style:italic;padding:10px 14px;border-left:3px solid #ff4d1c;background:#ebe7df;">"${alert.data.body}"</div>
+      <div style="font-size:13px;color:#444;line-height:1.6;font-style:italic;padding:10px 14px;border-left:3px solid #ff4d1c;background:#ebe7df;">"${esc(alert.data.body)}"</div>
     `;
     onClick = () => { showView('journal'); setTimeout(() => { const el = document.getElementById('post-'+post.id); el?.scrollIntoView({behavior:'smooth', block:'center'}); setTimeout(() => toggleComments(post.id), 600); }, 400); };
   } else if (alert.type === 'message') {
@@ -1225,10 +1291,10 @@ function renderAlert(alert, container) {
     inner = `
       <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">
         <i class="ti ti-mail" style="color:#ff4d1c;font-size:14px;"></i>
-        <span><span style="color:#ff4d1c;font-weight:700;">@${alert.by}</span> sent you a message</span>
+        <span><span style="color:#ff4d1c;font-weight:700;">@${esc(alert.by)}</span> sent you a message</span>
         <span style="margin-left:auto;font-size:9px;color:#aaa;">${ts}</span>
       </div>
-      <div style="font-size:13px;color:#444;line-height:1.6;padding:10px 14px;border-left:3px solid #ff4d1c;background:#ebe7df;margin-bottom:10px;white-space:pre-wrap;">${m.body}</div>
+      <div style="font-size:13px;color:#444;line-height:1.6;padding:10px 14px;border-left:3px solid #ff4d1c;background:#ebe7df;margin-bottom:10px;white-space:pre-wrap;">${esc(m.body)}</div>
       <div style="display:flex;gap:8px;align-items:center;">
         <input id="${replyId}" placeholder="Reply…" style="flex:1;border:1.5px solid #c5bfb5;background:#fff;font-family:'DM Sans',sans-serif;font-size:12px;padding:7px 10px;outline:none;" onkeydown="if(event.key==='Enter'){event.preventDefault();replyFromAlert('${m.sender_id}','${replyId}', this);}" onclick="event.stopPropagation();" />
         <button onclick="event.stopPropagation();replyFromAlert('${m.sender_id}','${replyId}')" style="background:#1a1a1a;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;padding:7px 14px;cursor:pointer;letter-spacing:0.06em;">Send</button>
@@ -1240,11 +1306,11 @@ function renderAlert(alert, container) {
     inner = `
       <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">
         <i class="ti ti-pencil" style="color:#ff4d1c;font-size:14px;"></i>
-        <span><span style="color:#ff4d1c;font-weight:700;">@${p.handle}</span> posted a new entry</span>
+        <span><span style="color:#ff4d1c;font-weight:700;">@${esc(p.handle)}</span> posted a new entry</span>
         <span style="margin-left:auto;font-size:9px;color:#aaa;">${ts}</span>
       </div>
-      ${p.subject ? `<div style="font-size:14px;font-weight:700;color:#1a1a1a;margin-bottom:4px;">${p.subject}</div>` : ''}
-      <div style="font-size:13px;color:#444;line-height:1.6;white-space:pre-wrap;">${(p.body||'').slice(0, 220)}${p.body?.length > 220 ? '…' : ''}</div>
+      ${p.subject ? `<div style="font-size:14px;font-weight:700;color:#1a1a1a;margin-bottom:4px;">${esc(p.subject)}</div>` : ''}
+      <div style="font-size:13px;color:#444;line-height:1.6;white-space:pre-wrap;">${esc((p.body||'').slice(0, 220))}${p.body?.length > 220 ? '…' : ''}</div>
     `;
     onClick = () => { showView('feed'); setTimeout(() => document.getElementById('post-'+p.id)?.scrollIntoView({behavior:'smooth', block:'center'}), 400); };
   }
@@ -1372,7 +1438,20 @@ function switchFeedTab(tab) {
 }
 
 // POSTS
+// Clearing a tag filter (deselecting a cloud tag, or emptying the tag search box)
+// called renderFeed(), which was never defined — the ReferenceError left the feed
+// stuck on the filtered results until the page was reloaded.
+function renderFeed() { loadPosts(); }
+
+// Both loadPosts() and filterPostsByTag() write to #posts-container, and clicking a
+// tag starts them within a few milliseconds of each other (showView('feed') triggers
+// a full load, then the filter runs). Whichever query answered last used to win, so
+// tag clicks often appeared to do nothing. Each render takes a ticket; a render whose
+// ticket has been superseded discards its results instead of painting them.
+let feedRenderToken = 0;
+
 async function loadPosts() {
+  const token = ++feedRenderToken;
   const c = document.getElementById('posts-container');
   c.innerHTML = '<div class="empty-state">Loading…</div>';
   let query = sb.from('posts').select('*, profiles!posts_user_id_fkey(age, gender, allow_comments)').order('created_at', {ascending: false});
@@ -1383,6 +1462,7 @@ async function loadPosts() {
     return;
   }
   const { data, error } = await query;
+  if (token !== feedRenderToken) return;
   c.innerHTML = '';
   if (error || !data?.length) { c.innerHTML = '<div class="empty-state">No entries yet. Be the first to write.</div>'; return; }
   data.forEach(p => renderPost(p, c));
@@ -1474,28 +1554,29 @@ function renderPost(p, container, prepend=false) {
   const el = document.createElement('div');
   el.className = 'post' + (prepend ? ' new-post-anim' : '');
   el.id = `post-${p.id}`;
-  const locStr = p.location ? ` — <span class="post-loc">${p.location}</span>` : '';
-  const subHTML = p.subject ? `<div class="post-subject">${p.subject}</div>` : '';
-  const tagsHTML = p.tags?.length ? `<div class="post-tags">${p.tags.map(t=>`<span class="post-tag">${t}</span>`).join('')}</div>` : '';
+  const locStr = p.location ? ` — <span class="post-loc">${esc(p.location)}</span>` : '';
+  const subHTML = p.subject ? `<div class="post-subject">${esc(p.subject)}</div>` : '';
+  const tagsHTML = p.tags?.length ? `<div class="post-tags">${p.tags.map(t=>`<span class="post-tag">${esc(t)}</span>`).join('')}</div>` : '';
   const ts = fmtTime(p.created_at);
   const likeBtn = `<button class="action-btn like-btn" onclick="toggleLike(${p.id},this)"><i class="ti ti-heart"></i> <span>${p.likes||0}</span></button>`;
   const commentBtn = `<button class="action-btn" onclick="toggleComments(${p.id})"><i class="ti ti-message-circle"></i> <span>${p.comment_count||0}</span></button>`;
   const bookmarkBtn = `<button class="action-btn bookmark-btn${isBookmarked?' bookmarked':''}" onclick="toggleBookmark(${p.id},this)"><i class="ti ti-bookmark"></i></button>`;
-  const dmBtn = !isOwner ? `<button class="action-btn dm-btn" onclick="openDMFromPost('${p.handle}')"><i class="ti ti-message-2"></i></button>` : '';
+  const dmBtn = !isOwner ? `<button class="action-btn dm-btn" onclick="openDMFromPost('${escAttrJs(p.handle)}')"><i class="ti ti-message-2"></i></button>` : '';
+  const isFollowed = followedUsers.has('@' + p.handle);
   let right = isOwner
     ? `<div class="post-owner-actions"><button class="owner-btn" onclick="editPost(${p.id})">Edit</button><button class="owner-btn delete" onclick="deletePost(${p.id})">Delete</button></div>`
-    : `<div class="post-owner-actions"><button class="owner-btn follow-btn" onclick="toggleFollow('${p.handle}',this)">Follow</button></div>`;
+    : `<div class="post-owner-actions"><button class="owner-btn follow-btn${isFollowed?' on':''}" onclick="toggleFollow('${escAttrJs(p.handle)}',this)">${isFollowed?'Following':'Follow'}</button></div>`;
   // Optional age + gender (skip "prefer not to say" so it doesn't show as a label)
   const profileBits = [];
   if (p.profiles?.age) profileBits.push(p.profiles.age);
   if (p.profiles?.gender && p.profiles.gender !== 'prefer not to say') profileBits.push(p.profiles.gender);
-  const profileMetaHTML = profileBits.map(b => `<span class="post-meta-sep">·</span><span>${b}</span>`).join('');
+  const profileMetaHTML = profileBits.map(b => `<span class="post-meta-sep">·</span><span>${esc(b)}</span>`).join('');
   // Respect post owner's "allow comments" toggle — existing comments stay readable, but no new input
   const allowComments = p.profiles?.allow_comments !== false;
   const commentInputHTML = allowComments
     ? `<div class="comment-input-wrap"><textarea class="c-textarea" id="cinput-${p.id}" placeholder="Write a response…" rows="1"></textarea><div class="c-footer"><span class="c-ts">${nowStamp()}</span><button class="btn-cancel-c" onclick="toggleComments(${p.id})">Cancel</button><button class="btn-reply" onclick="submitComment(${p.id})">Reply</button></div></div>`
     : `<div style="padding:10px;font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:0.08em;text-align:center;">Comments are turned off for this entry</div>`;
-  el.innerHTML = `<div class="post-accent"></div><div class="post-meta"><span>entry #${p.entry_num||'–'}</span><span class="post-meta-sep">·</span><span class="post-meta-handle">@${p.handle}</span>${profileMetaHTML}<span class="post-meta-sep">·</span><span>${ts}${locStr}</span></div>${subHTML}<div class="post-body clamped" id="pbody-${p.id}">${p.body}</div>${tagsHTML}<div class="post-actions">${likeBtn}${commentBtn}${bookmarkBtn}${dmBtn}${right}</div><div class="comments-section" id="comments-${p.id}"><div id="clist-${p.id}"></div>${commentInputHTML}</div>`;
+  el.innerHTML = `<div class="post-accent"></div><div class="post-meta"><span>entry #${p.entry_num||'–'}</span><span class="post-meta-sep">·</span><span class="post-meta-handle">@${esc(p.handle)}</span>${profileMetaHTML}<span class="post-meta-sep">·</span><span>${ts}${locStr}</span></div>${subHTML}<div class="post-body clamped" id="pbody-${p.id}">${esc(p.body)}</div>${tagsHTML}<div class="post-actions">${likeBtn}${commentBtn}${bookmarkBtn}${dmBtn}${right}</div><div class="comments-section" id="comments-${p.id}"><div id="clist-${p.id}"></div>${commentInputHTML}</div>`;
   if (prepend) container.insertBefore(el, container.firstChild);
   else container.appendChild(el);
   // Add a "Read more" link if the body overflows the 3-line clamp.
@@ -1519,17 +1600,33 @@ function renderPost(p, container, prepend=false) {
 async function toggleLike(postId, btn) {
   const { data: { session } } = await sb.auth.getSession();
   if (!session) { openAuth('signup'); return; }
-  const { data: existing } = await sb.from('likes').select('*').eq('user_id', session.user.id).eq('post_id', postId).maybeSingle();
+  const { data: existing } = await sb.from('likes').select('user_id').eq('user_id', session.user.id).eq('post_id', postId).maybeSingle();
+
+  // Read the stored count first so we can apply a delta. The old code read
+  // `existing.likes` — a column that doesn't exist on the likes table — so
+  // (undefined||1)-1 wrote 0, and a single unlike wiped the post's whole count.
+  const { data: before } = await sb.from('posts').select('likes').eq('id', postId).single();
+  const prior = before?.likes || 0;
+  const delta = existing ? -1 : 1;
+
   if (existing) {
     await sb.from('likes').delete().eq('user_id', session.user.id).eq('post_id', postId);
-    await sb.from('posts').update({likes: (existing.likes||1)-1}).eq('id', postId);
     btn.classList.remove('liked');
   } else {
     await sb.from('likes').insert({user_id: session.user.id, post_id: postId});
     btn.classList.add('liked');
   }
-  const { data: p } = await sb.from('posts').select('likes').eq('id', postId).single();
-  if (p) btn.querySelector('span').textContent = p.likes || 0;
+
+  // The schema may or may not have a trigger maintaining posts.likes. Re-read:
+  // if the count already moved, the database handled it; if not, apply the delta
+  // ourselves. Either way we never double-count and never clobber.
+  const { data: after } = await sb.from('posts').select('likes').eq('id', postId).single();
+  let shown = after?.likes || 0;
+  if (shown === prior) {
+    shown = Math.max(0, prior + delta);
+    await sb.from('posts').update({likes: shown}).eq('id', postId);
+  }
+  btn.querySelector('span').textContent = shown;
 }
 
 async function toggleBookmark(postId, btn) {
@@ -1578,9 +1675,9 @@ async function loadComments(postId) {
   (data||[]).forEach(c => {
     const d = document.createElement('div');
     d.className = 'comment';
-    const auth = c.handle ? `<span class="handle-pill">@${c.handle}</span>` : `<span class="anon-label">anonymous</span>`;
+    const auth = c.handle ? `<span class="handle-pill">@${esc(c.handle)}</span>` : `<span class="anon-label">anonymous</span>`;
     const cts = fmtTime(c.created_at);
-    d.innerHTML = `<div class="avatar av-a" style="font-size:9px">${c.handle ? c.handle.slice(0,2).toUpperCase() : '?'}</div><div class="comment-content"><div class="comment-author">${auth}</div><div class="comment-text">${c.body}</div>${cts ? `<div style="font-size:9px;color:#bbb;text-transform:uppercase;letter-spacing:0.06em;margin-top:4px;">${cts}</div>` : ''}</div>`;
+    d.innerHTML = `<div class="avatar av-a" style="font-size:9px">${c.handle ? esc(c.handle.slice(0,2).toUpperCase()) : '?'}</div><div class="comment-content"><div class="comment-author">${auth}</div><div class="comment-text">${esc(c.body)}</div>${cts ? `<div style="font-size:9px;color:#bbb;text-transform:uppercase;letter-spacing:0.06em;margin-top:4px;">${cts}</div>` : ''}</div>`;
     list.appendChild(d);
   });
 }
@@ -1589,25 +1686,50 @@ async function submitComment(postId) {
   const ta = document.getElementById('cinput-'+postId);
   if (!ta || !ta.value.trim()) return;
   const { data: { session } } = await sb.auth.getSession();
-  await sb.from('comments').insert({post_id: postId, user_id: session?.user?.id || null, handle: ME?.username || null, mode: ME ? 'handle' : 'anon', body: ta.value.trim()});
-  await sb.from('posts').update({comment_count: (document.querySelector(`#post-${postId} .cc-${postId}`)?.textContent|0)+1}).eq('id', postId);
+  const { error } = await sb.from('comments').insert({post_id: postId, user_id: session?.user?.id || null, handle: ME?.username || null, mode: ME ? 'handle' : 'anon', body: ta.value.trim()});
+  if (error) { showToast('Could not post your reply — try again'); return; }
+
+  // Count the comments that actually exist rather than reading the number off the
+  // page. The old selector (".cc-<id>") matched no element anywhere, so it always
+  // resolved to 0 and every new comment reset the post's count to 1.
+  const { count } = await sb.from('comments').select('id', {count:'exact', head:true}).eq('post_id', postId);
+  if (typeof count === 'number') {
+    await sb.from('posts').update({comment_count: count}).eq('id', postId);
+    const cntEl = document.querySelector(`#post-${postId} .action-btn[onclick^="toggleComments"] span`);
+    if (cntEl) cntEl.textContent = count;
+  }
   ta.value = '';
   loadComments(postId);
 }
 
+// The original body is stashed in a module-level map rather than inlined into the
+// Cancel button's onclick — a multi-line entry (i.e. almost every entry) inside a
+// JS string literal in an HTML attribute is a syntax error, which left Cancel dead.
+const editOriginals = new Map();
+
 async function editPost(id) {
   const el = document.getElementById('pbody-'+id);
   const { data: p } = await sb.from('posts').select('body').eq('id', id).single();
-  el.innerHTML = `<textarea class="edit-body" id="edit-ta-${id}">${p.body}</textarea><div class="edit-actions"><button class="btn-save-edit" onclick="saveEdit(${id})">Save</button><button class="btn-cancel-edit" onclick="cancelEdit(${id},'${p.body.replace(/'/g,"\\'")}')">Cancel</button></div>`;
+  if (!p) { showToast('Could not load that entry'); return; }
+  editOriginals.set(id, p.body);
+  el.innerHTML = `<textarea class="edit-body" id="edit-ta-${id}"></textarea><div class="edit-actions"><button class="btn-save-edit" onclick="saveEdit(${id})">Save</button><button class="btn-cancel-edit" onclick="cancelEdit(${id})">Cancel</button></div>`;
+  // Set as a value, not as markup: a body containing "</textarea>" would otherwise
+  // close the field early and spill the rest of the entry into the page.
+  document.getElementById('edit-ta-'+id).value = p.body;
 }
 async function saveEdit(id) {
   const v = document.getElementById('edit-ta-'+id)?.value.trim();
   if (!v) return;
-  await sb.from('posts').update({body: v}).eq('id', id);
-  document.getElementById('pbody-'+id).innerHTML = v;
+  const { error } = await sb.from('posts').update({body: v}).eq('id', id);
+  if (error) { showToast('Could not save — try again'); return; }
+  editOriginals.delete(id);
+  document.getElementById('pbody-'+id).innerHTML = esc(v);
   showToast('Entry updated');
 }
-function cancelEdit(id, orig) { document.getElementById('pbody-'+id).innerHTML = orig; }
+function cancelEdit(id) {
+  document.getElementById('pbody-'+id).innerHTML = esc(editOriginals.get(id) ?? '');
+  editOriginals.delete(id);
+}
 
 async function deletePost(id) {
   if (!confirm('Delete this entry permanently?')) return;
@@ -1692,7 +1814,7 @@ async function loadDMInbox() {
     if (!prof) continue;
     const d = document.createElement('div');
     d.className = 'dm-thread';
-    d.innerHTML = `<div class="avatar av-a" style="font-size:9px">${prof.username.slice(0,2).toUpperCase()}</div><div class="dm-thread-info"><div class="dm-thread-name">@${prof.username}</div><div class="dm-thread-preview">${msg.body}</div></div>`;
+    d.innerHTML = `<div class="avatar av-a" style="font-size:9px">${esc(prof.username.slice(0,2).toUpperCase())}</div><div class="dm-thread-info"><div class="dm-thread-name">@${esc(prof.username)}</div><div class="dm-thread-preview">${esc(msg.body)}</div></div>`;
     d.onclick = () => openDMConvo(prof.username);
     list.appendChild(d);
   }
@@ -1717,7 +1839,7 @@ async function loadDMMessages(handle) {
     const div = document.createElement('div');
     div.className = 'dm-msg ' + (m.sender_id === session.user.id ? 'sent' : 'recv');
     const ts = fmtTime(m.created_at, false);
-    div.innerHTML = `<div class="dm-msg-bubble">${m.body}</div><div class="dm-msg-meta">${ts}</div>`;
+    div.innerHTML = `<div class="dm-msg-bubble">${esc(m.body)}</div><div class="dm-msg-meta">${ts}</div>`;
     el.appendChild(div);
   });
   el.scrollTop = el.scrollHeight;
@@ -1772,10 +1894,16 @@ function makeTagBtn(tag){const b=document.createElement('button');b.className='t
 function renderTagPicker(){const r=document.getElementById('tag-row-1'),d=document.getElementById('tag-drawer');if(!r)return;r.innerHTML='';d.innerHTML='';ROW1_TAGS.forEach(t=>r.appendChild(makeTagBtn(t)));const e=document.createElement('button');e.className='tag-ellipsis-btn';e.textContent=drawerOpen?'▲':'…';e.onclick=()=>{drawerOpen=!drawerOpen;renderTagPicker();};r.appendChild(e);allTags.filter(t=>!ROW1_TAGS.includes(t)).forEach(t=>d.appendChild(makeTagBtn(t)));d.classList.toggle('open',drawerOpen);}
 function addCustomTag(){const i=document.getElementById('custom-tag-input');const v=i.value.trim().toLowerCase();if(!v)return;if(!allTags.includes(v))allTags.push(v);selectedTags.add(v);i.value='';drawerOpen=true;renderTagPicker();}
 function renderTagCloud(f=''){const el=document.getElementById('tag-cloud');if(!el)return;el.innerHTML='';allTags.filter(t=>t.includes(f.toLowerCase())).forEach(tag=>{const b=document.createElement('button');b.className='cloud-tag';b.textContent=tag;b.onclick=()=>{
-  // deactivate all other tags
+  // Read this tag's state BEFORE clearing the others. The old order cleared every
+  // .cloud-tag — including the one just clicked — and only then asked whether it
+  // was active, so the answer was always no and clicking an active tag to clear
+  // the filter never worked.
+  const wasActive = b.classList.contains('active');
   document.querySelectorAll('.cloud-tag').forEach(btn=>btn.classList.remove('active'));
-  if(b.classList.contains('active')){b.classList.remove('active');renderFeed();}
-  else{b.classList.add('active');showView('feed');filterPostsByTag(tag);}
+  if (wasActive) { renderFeed(); return; }
+  b.classList.add('active');
+  showView('feed');
+  filterPostsByTag(tag);
 };el.appendChild(b);});}
 function filterTags(v) {
   renderTagCloud(v);
@@ -1788,9 +1916,11 @@ function filterTags(v) {
 }
 
 async function filterPostsByTag(tag) {
+  const token = ++feedRenderToken;
   const c = document.getElementById('posts-container');
   c.innerHTML = '<div class="empty-state">Searching…</div>';
   const { data } = await sb.from('posts').select('*').contains('tags', [tag]).order('created_at', {ascending: false});
+  if (token !== feedRenderToken) return;
   c.innerHTML = '';
   if (!data?.length) { c.innerHTML = '<div class="empty-state">No entries found for that tag.</div>'; return; }
   data.forEach(p => renderPost(p, c));
@@ -1845,18 +1975,18 @@ async function loadPopularFeeds() {
     // Get most recent post for this user
     const { data: posts } = await sb.from('posts').select('subject, body, created_at').eq('handle', p.username).order('created_at', {ascending: false}).limit(1);
     const post = posts?.[0];
-    const preview = post ? post.body.split(' ').slice(0, 30).join(' ') + '…' : '';
-    const postSubject = post?.subject ? `<div style="font-size:10px;font-weight:700;color:#1a1a1a;text-transform:uppercase;margin:4px 0 2px;">${post.subject}</div>` : '';
+    const preview = post ? esc(post.body.split(' ').slice(0, 30).join(' ')) + '…' : '';
+    const postSubject = post?.subject ? `<div style="font-size:10px;font-weight:700;color:#1a1a1a;text-transform:uppercase;margin:4px 0 2px;">${esc(post.subject)}</div>` : '';
 
     const d = document.createElement('div');
     d.className = 'popular-feed-item';
     d.style.cssText = 'flex-direction:column;align-items:flex-start;padding-bottom:10px;border-bottom:1px solid #d5cfc5;margin-bottom:10px;';
     d.innerHTML = `
       <div style="display:flex;align-items:center;gap:8px;width:100%;margin-bottom:6px;">
-        <div class="avatar av-b" style="font-size:9px;width:26px;height:26px;flex-shrink:0">${p.username.slice(0,2).toUpperCase()}</div>
+        <div class="avatar av-b" style="font-size:9px;width:26px;height:26px;flex-shrink:0">${esc(p.username.slice(0,2).toUpperCase())}</div>
         <div class="popular-feed-info">
-          <div class="popular-feed-name">@${p.username}</div>
-          ${p.title ? `<div style="font-size:9px;color:#888;font-style:italic;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.title}</div>` : ''}
+          <div class="popular-feed-name">@${esc(p.username)}</div>
+          ${p.title ? `<div style="font-size:9px;color:#888;font-style:italic;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(p.title)}</div>` : ''}
         </div>
       </div>
       ${postSubject}
@@ -1877,8 +2007,8 @@ async function loadFollowingNew() {
     const d = document.createElement('div');
     d.className = 'following-post-item';
     d.onclick = () => { showView('feed'); setTimeout(() => document.getElementById('post-'+p.id)?.scrollIntoView({behavior:'smooth'}), 300); };
-    const subHTML = p.subject ? `<div class="following-post-subject">${p.subject}</div>` : '';
-    d.innerHTML = `<div class="following-post-handle">@${p.handle}</div>${subHTML}<div class="following-post-preview">${p.body}</div>`;
+    const subHTML = p.subject ? `<div class="following-post-subject">${esc(p.subject)}</div>` : '';
+    d.innerHTML = `<div class="following-post-handle">@${esc(p.handle)}</div>${subHTML}<div class="following-post-preview">${esc(p.body)}</div>`;
     el.appendChild(d);
   });
 }
