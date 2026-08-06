@@ -806,9 +806,13 @@ window.addEventListener('DOMContentLoaded', () => {
   // Background auth upgrade. Strict timeouts. Never blocks paint.
   (async () => {
     try {
-      // Local-only read (autoRefreshToken: false on the client). Should be instant.
+      // Meant to be a local-only read (autoRefreshToken: false), but getSession()
+      // still reaches the network when the stored token is expired, so on a slow
+      // connection it can take several seconds. 3s was tight enough to fire during
+      // ordinary use; the anon view has already painted, so waiting longer costs
+      // the user nothing visible.
       const sessP = sb.auth.getSession();
-      const sessTO = new Promise((_, rej) => setTimeout(() => rej(new Error('getSession timeout')), 3000));
+      const sessTO = new Promise((_, rej) => setTimeout(() => rej(new Error('getSession timeout')), 10000));
       const { data: { session: cached } } = await Promise.race([sessP, sessTO]);
       if (!cached) return;
 
@@ -816,7 +820,7 @@ window.addEventListener('DOMContentLoaded', () => {
       let active = cached;
       if ((cached.expires_at || 0) - nowSec < 60) {
         const refP = sb.auth.refreshSession();
-        const refTO = new Promise((_, rej) => setTimeout(() => rej(new Error('refresh timeout')), 4000));
+        const refTO = new Promise((_, rej) => setTimeout(() => rej(new Error('refresh timeout')), 10000));
         const { data, error } = await Promise.race([refP, refTO]);
         if (error || !data?.session) throw (error || new Error('no session after refresh'));
         active = data.session;
@@ -825,11 +829,18 @@ window.addEventListener('DOMContentLoaded', () => {
       showApp();
       scheduleRefresh(active);
     } catch(e) {
-      // Cached session unusable. Wipe stale tokens so the next refresh
-      // doesn't repeat the hang. User stays on the anon view that already
-      // painted; the header "Sign in" button is available.
-      console.warn('echo: background auth failed, clearing stale tokens:', e);
-      clearStaleAuth();
+      // Only discard the stored tokens when the server actually rejected them.
+      // Timing out means we never got an answer — usually a slow network — and
+      // wiping on that signed the user out for good every time the connection was
+      // poor, which is the opposite of what a stale-token guard should do. On a
+      // timeout the tokens are left alone so the next load can try again; the user
+      // stays on the anon view that already painted, with "Sign in" available.
+      if (/timeout/i.test(String(e?.message || ''))) {
+        console.warn('echo: background auth timed out, keeping tokens for next load:', e);
+      } else {
+        console.warn('echo: background auth failed, clearing stale tokens:', e);
+        clearStaleAuth();
+      }
     }
   })();
 });
@@ -862,8 +873,14 @@ function scheduleRefresh(session) {
   }, wait);
 }
 
+// submitLogin() now completes the sign-in itself, and Supabase emits SIGNED_IN
+// during that call — so without this flag both paths would run loadProfile() and
+// showApp() concurrently, resetting the follows/bookmarks sets mid-render.
+let manualSignInInFlight = false;
+
 sb.auth.onAuthStateChange(async (event, session) => {
   if (event === 'SIGNED_IN' && session) {
+    if (manualSignInInFlight) return;
     await loadProfile(session.user.id);
     showApp();
     scheduleRefresh(session);
@@ -1076,8 +1093,37 @@ async function submitLogin() {
   const btn = document.getElementById('btn-login');
   btn.disabled = true; btn.textContent = 'Signing in…';
 
-  const { error } = await sb.auth.signInWithPassword({ email, password });
-  if (error) { showErr('err-li-email', error.message); btn.disabled=false; btn.textContent='Sign in'; }
+  manualSignInInFlight = true;
+  try {
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) { showErr('err-li-email', error.message); return; }
+
+    // Finish the handoff here rather than leaving it to onAuthStateChange. That
+    // callback awaits loadProfile(), and every database call inside it needs an
+    // access token from getSession() — which can stall. When it did, nothing
+    // re-enabled this button and it sat on "Signing in…" with no explanation.
+    if (data?.session) {
+      try {
+        await Promise.race([
+          loadProfile(data.session.user.id),
+          new Promise((_, rej) => setTimeout(() => rej(new Error('profile load timed out')), 10000))
+        ]);
+      } catch (e) {
+        // Signed in, but the profile didn't arrive. Let the user into the app
+        // anyway — a partly-loaded app they can retry from beats a frozen button.
+        console.warn('echo: signed in but profile load failed:', e);
+        showToast('Signed in, but your profile is slow to load — try refreshing.');
+      }
+      showApp();
+      scheduleRefresh(data.session);
+    }
+  } catch(e) {
+    showErr('err-li-email', e?.message || 'Could not sign in — please try again');
+  } finally {
+    // Always restore the button, on every path.
+    manualSignInInFlight = false;
+    btn.disabled = false; btn.textContent = 'Sign in';
+  }
 }
 
 async function signOut() {
