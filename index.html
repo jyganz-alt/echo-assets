@@ -56,6 +56,12 @@ window.addEventListener('load', function() {
       }
     }
     .app { display: grid; grid-template-columns: 2fr 5fr 3fr; min-height: 100vh; }
+    /* Grid items default to min-width:auto, so a track can never shrink below its
+       content's minimum. The "Following — New" previews set white-space:nowrap on a
+       whole entry, so the middle column demanded the full one-line width — over
+       2000px — squeezing the sidebar to a 42px strip and shoving the right panel
+       off-screen. min-width:0 lets the fr sizes hold and lets the ellipsis clip. */
+    .app > * { min-width: 0; }
     /* Sidebar sticks to the top of the viewport while the page scrolls naturally below;
        right-panel just scrolls with the page so there's only one scrollbar (at viewport edge). */
     .sidebar { position: sticky; top: 0; align-self: start; }
