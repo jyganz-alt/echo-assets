@@ -55,10 +55,10 @@ window.addEventListener('load', function() {
           ) fixed;
       }
     }
-    /* Narrow icon rail hard against the left edge, the entry grid in the middle, and
-       Popular Feeds down the right. With the entries laid out two across, the page
-       reads as three columns of boxes. */
-    .app { display: grid; grid-template-columns: 56px 1fr 320px; min-height: 100vh; }
+    /* Narrow icon rail hard against the left edge, everything else in one content
+       column. The three-column board lives inside that column (see .board), so
+       Popular Feeds is now the board's right column rather than a separate panel. */
+    .app { display: grid; grid-template-columns: 56px 1fr; min-height: 100vh; }
     /* Grid items default to min-width:auto, so a track can never shrink below its
        content's minimum. The "Following — New" previews set white-space:nowrap on a
        whole entry, so the middle column demanded the full one-line width — over
@@ -112,8 +112,8 @@ window.addEventListener('load', function() {
     .btn-sm.on { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
     .feed { display: flex; flex-direction: column; }
     .motto-bar { background: #ff4d1c; }
-    .motto-bar-inner { padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; }
-    .motto { font-size: 22px; font-weight: 700; color: #fff; text-transform: lowercase; letter-spacing: -0.02em; line-height: 1; }
+    .motto-bar-inner { padding: 12px 20px; display: flex; align-items: center; justify-content: center; }
+    .motto { font-size: 22px; font-weight: 700; color: #fff; text-transform: lowercase; letter-spacing: -0.02em; line-height: 1; text-align: center; }
     .motto.manifesto { font-size: 13px; font-weight: 500; letter-spacing: 0.06em; }
     .feed-tabs { display: flex; }
     .feed-tab { font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.08em; padding: 4px 10px; cursor: pointer; border: 1px solid rgba(255,255,255,0.3); }
@@ -147,17 +147,22 @@ window.addEventListener('load', function() {
     .btn-publish { background: #1a1a1a; color: #fff; border: none; font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; padding: 8px 18px; cursor: pointer; }
     .btn-publish:hover { background: #ff4d1c; }
     .post { border-bottom: 1px solid #d5cfc5; padding: 22px 28px; background: #f0ede6; min-width: 0; }
-    /* Entries as boxes, two across. The 1px gaps let the darker backdrop show
-       through as grid lines, so with Popular Feeds down the right the page reads as
-       a three-column board. min-width:0 on each box stops one long unbroken word
-       from widening a whole column — the same trap that broke the old layout. */
-    #posts-container { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: #c5bfb5; border-top: 1px solid #c5bfb5; align-content: start; }
-    #posts-container > .post { border-bottom: none; }
-    #posts-container > .empty-state { grid-column: 1 / -1; background: #f0ede6; }
-    /* The signed-in writer's own most recent entry, full width beneath the hero. */
-    .my-latest { border-bottom: 2px solid #1a1a1a; }
-    .my-latest-label { padding: 7px 28px; background: #1a1a1a; color: #ff4d1c; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; }
-    .my-latest > .post { border-bottom: none; }
+    /* THE BOARD — three equal columns of equal-size boxes. The 1px gaps let the
+       darker backdrop through as the grid lines. Every box is exactly --box-h tall,
+       so rows line up across all three columns with no measuring. min-width:0 stops
+       one long unbroken word from widening a whole column. */
+    .board-labels { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1px; background: #c5bfb5; border-top: 1px solid #c5bfb5; }
+    .board-label { background: #1a1a1a; color: #ff4d1c; padding: 7px 10px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; text-align: center; }
+    .board { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1px; background: #c5bfb5; align-items: start; --box-h: 268px; }
+    .board-col { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+    /* Fixed-height boxes keep the board square. Anything taller scrolls inside its
+       own box, so likes, comments and the rest stay reachable instead of clipping. */
+    .board-box { height: var(--box-h); overflow-y: auto; background: #f0ede6; min-width: 0; }
+    .board-box > .post { border-bottom: none; padding: 16px 18px; }
+    .board-box .post-body { font-size: 13px; }
+    .board-empty { height: var(--box-h); background: #f0ede6; display: flex; align-items: center; justify-content: center; text-align: center; padding: 20px; font-size: 10px; color: #aaa; text-transform: uppercase; letter-spacing: 0.08em; line-height: 1.8; }
+    /* The hero is simply the middle column's top box, centred within it. */
+    .anon-hero.board-box { display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; padding: 20px; }
     .post-accent { width: 28px; height: 2px; background: #ff4d1c; margin-bottom: 10px; opacity: 0.9; }
     .post-meta { font-size: 10px; color: #aaa; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .post-meta-handle { color: #ff4d1c; font-weight: 700; }
@@ -363,8 +368,11 @@ window.addEventListener('load', function() {
          were unreachable on mobile while it was hidden. Only the right panel drops. */
       .app { grid-template-columns: 44px 1fr; height: auto; min-height: 100vh; max-width: 100vw; }
       .feed, .right-panel { grid-column: auto; }
-      /* One entry per row on a phone — two boxes across is unreadable at this width. */
-      #posts-container { grid-template-columns: 1fr; }
+      /* The board stacks into one column on a phone: following entries, then your
+         own, then popular writers. Fixed box heights are dropped so each box sizes
+         to its content — scrolling inside a small box on a phone is miserable. */
+      .board, .board-labels { grid-template-columns: 1fr; }
+      .board-box, .board-empty { height: auto; min-height: 0; overflow: visible; }
       /* Let the whole page scroll instead of the .feed having its own scroll
          (the internal scrollbar steals content width on mobile) */
       .feed { overflow-y: visible; }
@@ -503,6 +511,11 @@ window.addEventListener('load', function() {
     </div>
   </div>
 </div>
+<div class="motto-bar">
+  <div class="motto-bar-inner">
+    <div class="motto">tell your true story</div>
+  </div>
+</div>
 <div class="app" id="main-app" style="display:none">
   <div class="sidebar">
     <div class="nav-item active" id="nav-feed" title="Home" onclick="showView('feed')"><i class="ti ti-home"></i><span class="nav-label">Home</span></div>
@@ -525,20 +538,30 @@ window.addEventListener('load', function() {
   </div>
 
   <div class="feed" id="main-area">
+    <!-- Three equal columns of equal-size boxes: entries from writers you follow on
+         the left, the hero and then your own entries newest-first down the middle,
+         popular writers on the right. Every box is the same height, so the rows line
+         up across all three columns and the page reads as a board. -->
     <div id="view-feed" class="view active">
-      <div class="anon-hero">
-        <div class="anon-hero-logo">ech<span class="o">o</span><span class="logo-colon"></span></div>
-        <div class="anon-hero-cta">
-          <button class="anon-hero-btn" onclick="startEntry()"><span class="when-anon">Start your own</span><span class="when-auth">my story</span></button>
-          <button class="anon-hero-btn secondary" onclick="document.querySelector('.feed .post')?.scrollIntoView({behavior:'smooth', block:'start'})">Browse stories</button>
-        </div>
+      <div class="board-labels">
+        <div class="board-label">Following</div>
+        <div class="board-label">Your journal</div>
+        <div class="board-label">Popular feeds</div>
       </div>
-      <!-- The signed-in writer's own most recent entry, sitting directly under the
-           hero. Hidden while signed out, or before a first entry exists. -->
-      <div class="my-latest" id="my-latest-box" style="display:none"></div>
-      <!-- Post boxes, laid out two across so that with the Popular Feeds column on
-           the right the page reads as a three-column grid. -->
-      <div id="posts-container"></div>
+      <div class="board">
+        <div class="board-col" id="col-following"></div>
+        <div class="board-col" id="col-mine">
+          <div class="board-box anon-hero">
+            <div class="anon-hero-logo">ech<span class="o">o</span><span class="logo-colon"></span></div>
+            <div class="anon-hero-cta">
+              <button class="anon-hero-btn" onclick="startEntry()"><span class="when-anon">Start your own</span><span class="when-auth">my story</span></button>
+              <button class="anon-hero-btn secondary" onclick="document.querySelector('#col-following .post')?.scrollIntoView({behavior:'smooth', block:'center'})">Browse stories</button>
+            </div>
+          </div>
+          <div id="mine-col"></div>
+        </div>
+        <div class="board-col" id="col-popular"></div>
+      </div>
     </div>
 
     <div id="view-following" class="view">
@@ -692,13 +715,6 @@ window.addEventListener('load', function() {
   </div>
 
   <!-- RIGHT PANEL -->
-  <div class="right-panel" id="right-panel">
-    <div class="right-panel-section" style="flex:1">
-      <div class="right-panel-title">Popular Feeds</div>
-      <div id="popular-feeds-list"><div style="font-size:10px;color:#aaa;text-transform:uppercase;">Loading…</div></div>
-    </div>
-  </div>
-
 </div>
 
 <!-- Delete-account confirmation modal -->
@@ -1019,6 +1035,7 @@ function showAnonApp() {
   document.getElementById('main-app').style.display = 'grid';
   renderTagCloud();
   loadPosts();
+  loadMyLatest();
   loadRightPanel();
   loadTagsFromDB();
 }
@@ -1540,20 +1557,31 @@ function feedQuery(handles) {
   return q;
 }
 
-// The grid leads with entries from the writers you follow and then continues with
-// everyone else's. That makes the follow list drive the page without it ever
-// sitting empty — a first-time visitor follows nobody by definition, and an empty
-// page is the worst thing to show someone deciding whether to stay. The Following
-// tab still narrows it to the follow list alone.
+// Wrap an entry in its own equal-height board box.
+function renderBoxedPost(p, col) {
+  const box = document.createElement('div');
+  box.className = 'board-box';
+  col.appendChild(box);
+  renderPost(p, box);
+}
+function boardEmpty(col, msg) {
+  col.innerHTML = `<div class="board-empty">${esc(msg)}</div>`;
+}
+
+// LEFT COLUMN — entries from the writers you follow. It falls back to everyone's
+// recent entries when the follow list is empty, since a first-time visitor follows
+// nobody by definition and an empty column is the worst thing to land on. The
+// Following tab narrows it to the follow list alone.
 async function loadPosts() {
   const token = ++feedRenderToken;
-  const c = document.getElementById('posts-container');
-  c.innerHTML = '<div class="empty-state">Loading…</div>';
+  const c = document.getElementById('col-following');
+  if (!c) return;
+  boardEmpty(c, 'Loading…');
 
   const handles = [...followedUsers].map(h => h.replace('@',''));
   const followingOnly = activeFeedTab === 'following';
   if (followingOnly && !handles.length) {
-    c.innerHTML = '<div class="empty-state">Follow writers to see their entries here.</div>';
+    boardEmpty(c, 'Follow writers to see their entries here.');
     return;
   }
 
@@ -1561,7 +1589,7 @@ async function loadPosts() {
   const paint = rows => (rows || []).forEach(p => {
     if (seen.has(p.id)) return;
     seen.add(p.id);
-    renderPost(p, c);
+    renderBoxedPost(p, c);
   });
 
   // Fetching every entry with its full body took ~665ms and blocked the other
@@ -1581,10 +1609,9 @@ async function loadPosts() {
   c.innerHTML = '';
   paint(followed);
   paint(others);
-  if (!seen.size) { c.innerHTML = '<div class="empty-state">No entries yet. Be the first to write.</div>'; return; }
+  if (!seen.size) { boardEmpty(c, 'No entries yet. Be the first to write.'); return; }
 
-  // Remainder in the background. Deduping by id means an entry already shown from
-  // the follow list is never repeated here.
+  // Remainder in the background, deduped by id so nothing already shown repeats.
   const { data: rest } = await feedQuery(followingOnly ? handles : null).range(FEED_FIRST_PAGE, 999);
   if (token !== feedRenderToken) return;
   paint(rest);
@@ -2037,15 +2064,17 @@ function filterTags(v) {
   }
 }
 
+// Tag filtering replaces the left column, the same place loadPosts() paints.
 async function filterPostsByTag(tag) {
   const token = ++feedRenderToken;
-  const c = document.getElementById('posts-container');
-  c.innerHTML = '<div class="empty-state">Searching…</div>';
-  const { data } = await sb.from('posts').select('*').contains('tags', [tag]).order('created_at', {ascending: false});
+  const c = document.getElementById('col-following');
+  if (!c) return;
+  boardEmpty(c, 'Searching…');
+  const { data } = await sb.from('posts').select(FEED_SELECT).contains('tags', [tag]).order('created_at', {ascending: false});
   if (token !== feedRenderToken) return;
+  if (!data?.length) { boardEmpty(c, `No entries tagged "${tag}".`); return; }
   c.innerHTML = '';
-  if (!data?.length) { c.innerHTML = '<div class="empty-state">No entries found for that tag.</div>'; return; }
-  data.forEach(p => renderPost(p, c));
+  data.forEach(p => renderBoxedPost(p, c));
 }
 function handleBodyInput(){document.getElementById('compose-ph').style.display=document.getElementById('compose-text').value?'none':'flex';}
 // Posts store created_at as UTC without a trailing 'Z'; treat as UTC and render in US Eastern time.
@@ -2075,22 +2104,25 @@ async function loadRightPanel() {
   loadFollowingNew();
 }
 
+// RIGHT COLUMN — one box per popular writer, matching the other columns' boxes.
 async function loadPopularFeeds() {
-  const el = document.getElementById('popular-feeds-list');
+  const el = document.getElementById('col-popular');
+  if (!el) return;
+  boardEmpty(el, 'Loading…');
   // Get profiles ordered by follower count
   let profiles = [];
   try {
-    const res = await sb.rpc('get_popular_feeds', { limit_count: 5 });
+    const res = await sb.rpc('get_popular_feeds', { limit_count: 12 });
     if (res.data) profiles = res.data;
   } catch(e) {}
 
   // Fallback if rpc fails
   if (!profiles.length) {
-    const { data } = await sb.from('profiles').select('username, title').limit(5);
+    const { data } = await sb.from('profiles').select('username, title').limit(12);
     if (data) profiles = data.map(p => ({...p, follower_count: 0}));
   }
 
-  if (!profiles.length) { el.innerHTML = '<div style="font-size:10px;color:#aaa;text-transform:uppercase;">No writers yet.</div>'; return; }
+  if (!profiles.length) { boardEmpty(el, 'No writers yet.'); return; }
 
   // One query covering every writer, instead of one round-trip each inside the loop.
   // That loop fired five sequential requests on every single page load.
@@ -2112,12 +2144,12 @@ async function loadPopularFeeds() {
     const postSubject = post?.subject ? `<div style="font-size:10px;font-weight:700;color:#1a1a1a;text-transform:uppercase;margin:4px 0 2px;">${esc(post.subject)}</div>` : '';
 
     const d = document.createElement('div');
-    d.className = 'popular-feed-item';
-    d.style.cssText = 'flex-direction:column;align-items:flex-start;padding-bottom:10px;border-bottom:1px solid #d5cfc5;margin-bottom:10px;';
+    d.className = 'board-box popular-feed-item';
+    d.style.cssText = 'flex-direction:column;align-items:flex-start;padding:16px 18px;';
     d.innerHTML = `
-      <div style="display:flex;align-items:center;gap:8px;width:100%;margin-bottom:6px;">
+      <div style="display:flex;align-items:center;gap:8px;width:100%;margin-bottom:8px;">
         <div class="avatar av-b" style="font-size:9px;width:26px;height:26px;flex-shrink:0">${esc(p.username.slice(0,2).toUpperCase())}</div>
-        <div class="popular-feed-info">
+        <div class="popular-feed-info" style="min-width:0;">
           <div class="popular-feed-name">@${esc(p.username)}</div>
           ${p.title ? `<div style="font-size:9px;color:#888;font-style:italic;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(p.title)}</div>` : ''}
         </div>
@@ -2134,24 +2166,23 @@ async function loadPopularFeeds() {
 // no-op because loadRightPanel() still calls it.
 async function loadFollowingNew() {}
 
-// The signed-in writer's own most recent entry, shown in its own box directly
-// under the hero.
+// MIDDLE COLUMN, below the hero — the signed-in writer's own entries, newest first.
 async function loadMyLatest() {
-  const box = document.getElementById('my-latest-box');
-  if (!box) return;
-  if (!ME) { box.style.display = 'none'; return; }
+  const col = document.getElementById('mine-col');
+  if (!col) return;
+  if (!ME) { boardEmpty(col, 'Sign in to see your own entries here.'); return; }
   const { data: { session } } = await sb.auth.getSession();
-  if (!session) { box.style.display = 'none'; return; }
+  if (!session) { boardEmpty(col, 'Sign in to see your own entries here.'); return; }
+
+  boardEmpty(col, 'Loading…');
   const { data, error } = await sb.from('posts')
-    .select('*, profiles!posts_user_id_fkey(age, gender, allow_comments)')
+    .select(FEED_SELECT)
     .eq('user_id', session.user.id)
-    .order('created_at', {ascending: false})
-    .limit(1);
-  const post = data?.[0];
-  if (error || !post) { box.style.display = 'none'; return; }
-  box.innerHTML = '<div class="my-latest-label">Your most recent entry</div>';
-  renderPost(post, box);
-  box.style.display = 'block';
+    .order('created_at', {ascending: false});
+  if (error) { boardEmpty(col, 'Could not load your entries.'); return; }
+  if (!data?.length) { boardEmpty(col, 'You haven\'t written an entry yet.'); return; }
+  col.innerHTML = '';
+  data.forEach(p => renderBoxedPost(p, col));
 }
 </script>
 </body>
