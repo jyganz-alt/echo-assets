@@ -409,44 +409,51 @@ window.addEventListener('load', function() {
   </div>
   <div class="auth-right">
     <div class="auth-brand">ech<span class="o">o</span>:<span class="auth-brand-desc"> anonymous journaling</span></div>
-    <div class="auth-view active" id="auth-signup">
+    <!-- Both panels live in the DOM at once. Without autocomplete hints Chrome saw
+         the signup email+password pair first, assumed that was the login form, and
+         filled saved credentials there instead of into Sign in. "new-password" tells
+         it these are registration fields (offer to save, never autofill), while
+         "username" + "current-password" below marks the real login pair. Each panel
+         is its own <form> so the browser and password managers treat them separately,
+         which also makes Enter submit. -->
+    <form class="auth-view active" id="auth-signup" onsubmit="event.preventDefault(); submitSignup();">
       <div class="auth-title">Create your account</div>
       <div class="auth-sub">your identity is hidden. your username is invented. your story is truth.</div>
       <div class="auth-field">
         <div class="auth-label">Email address *</div>
-        <input class="auth-input" id="su-email" type="email" placeholder="your@email.com" />
+        <input class="auth-input" id="su-email" name="email" type="email" autocomplete="email" placeholder="your@email.com" />
         <div class="auth-error" id="err-email"></div>
       </div>
       <div class="auth-field">
         <div class="auth-label">Username *</div>
-        <input class="auth-input" id="su-username" type="text" placeholder="e.g. brokenwings99" maxlength="30" oninput="previewHandle()" />
+        <input class="auth-input" id="su-username" name="username" type="text" autocomplete="username" placeholder="e.g. brokenwings99" maxlength="30" oninput="previewHandle()" />
         <div class="auth-hint" id="handle-preview">Your handle: @yourname</div>
         <div class="auth-error" id="err-username"></div>
       </div>
       <div class="auth-field">
         <div class="auth-label">Password *</div>
-        <input class="auth-input" id="su-password" type="password" placeholder="At least 8 characters" />
+        <input class="auth-input" id="su-password" name="new-password" type="password" autocomplete="new-password" placeholder="At least 8 characters" />
         <div class="auth-error" id="err-password"></div>
       </div>
-      <button class="btn-auth" id="btn-signup" onclick="submitSignup()">Create account</button>
+      <button class="btn-auth" id="btn-signup" type="submit">Create account</button>
       <div class="auth-switch">Already have an account? <a onclick="switchAuth('login')">Sign in</a></div>
-    </div>
-    <div class="auth-view" id="auth-login">
+    </form>
+    <form class="auth-view" id="auth-login" onsubmit="event.preventDefault(); submitLogin();">
       <div class="auth-title">Welcome back</div>
       <div class="auth-sub">Sign in to continue your story.</div>
       <div class="auth-field">
         <div class="auth-label">Email address *</div>
-        <input class="auth-input" id="li-email" type="email" placeholder="your@email.com" />
+        <input class="auth-input" id="li-email" name="username" type="email" autocomplete="username" placeholder="your@email.com" />
         <div class="auth-error" id="err-li-email"></div>
       </div>
       <div class="auth-field">
         <div class="auth-label">Password *</div>
-        <input class="auth-input" id="li-password" type="password" placeholder="Your password" />
+        <input class="auth-input" id="li-password" name="current-password" type="password" autocomplete="current-password" placeholder="Your password" />
         <div class="auth-error" id="err-li-password"></div>
       </div>
-      <button class="btn-auth" id="btn-login" onclick="submitLogin()">Sign in</button>
+      <button class="btn-auth" id="btn-login" type="submit">Sign in</button>
       <div class="auth-switch">New to echo? <a onclick="switchAuth('signup')">Create an account</a></div>
-    </div>
+    </form>
   </div>
 </div>
 
@@ -1514,22 +1521,40 @@ function renderFeed() { loadPosts(); }
 // ticket has been superseded discards its results instead of painting them.
 let feedRenderToken = 0;
 
+// Roughly a screenful. Query builders are single-use, so build a fresh one per call.
+const FEED_FIRST_PAGE = 15;
+function buildFeedQuery() {
+  let q = sb.from('posts').select('*, profiles!posts_user_id_fkey(age, gender, allow_comments)').order('created_at', {ascending: false});
+  if (activeFeedTab === 'following' && followedUsers.size > 0) {
+    q = q.in('handle', [...followedUsers].map(h => h.replace('@','')));
+  }
+  return q;
+}
+
 async function loadPosts() {
   const token = ++feedRenderToken;
   const c = document.getElementById('posts-container');
   c.innerHTML = '<div class="empty-state">Loading…</div>';
-  let query = sb.from('posts').select('*, profiles!posts_user_id_fkey(age, gender, allow_comments)').order('created_at', {ascending: false});
-  if (activeFeedTab === 'following' && followedUsers.size > 0) {
-    query = query.in('handle', [...followedUsers].map(h => h.replace('@','')));
-  } else if (activeFeedTab === 'following') {
+  if (activeFeedTab === 'following' && followedUsers.size === 0) {
     c.innerHTML = '<div class="empty-state">Follow writers to see their entries here.</div>';
     return;
   }
-  const { data, error } = await query;
+
+  // Pulling every entry with its full body took ~665ms and held up the two other
+  // start-up queries behind it, so nothing appeared for about a second. Paint the
+  // first screenful immediately, then quietly append the rest — same entries, just
+  // visible much sooner.
+  const { data, error } = await buildFeedQuery().range(0, FEED_FIRST_PAGE - 1);
   if (token !== feedRenderToken) return;
   c.innerHTML = '';
   if (error || !data?.length) { c.innerHTML = '<div class="empty-state">No entries yet. Be the first to write.</div>'; return; }
   data.forEach(p => renderPost(p, c));
+
+  // A short first page means there is nothing more to fetch.
+  if (data.length < FEED_FIRST_PAGE) return;
+  const { data: rest } = await buildFeedQuery().range(FEED_FIRST_PAGE, 999);
+  if (token !== feedRenderToken) return;
+  (rest || []).forEach(p => renderPost(p, c));
 }
 
 let pendingPost = null;
@@ -2034,11 +2059,22 @@ async function loadPopularFeeds() {
 
   if (!profiles.length) { el.innerHTML = '<div style="font-size:10px;color:#aaa;text-transform:uppercase;">No writers yet.</div>'; return; }
 
+  // One query covering every writer, instead of one round-trip each inside the loop.
+  // That loop fired five sequential requests on every single page load.
+  const latestByHandle = new Map();
+  const names = profiles.map(p => p.username).filter(Boolean);
+  if (names.length) {
+    const { data: recent } = await sb.from('posts')
+      .select('handle, subject, body, created_at')
+      .in('handle', names)
+      .order('created_at', {ascending: false});
+    // Ordered newest-first, so the first row seen per handle is that writer's latest.
+    (recent || []).forEach(r => { if (!latestByHandle.has(r.handle)) latestByHandle.set(r.handle, r); });
+  }
+
   el.innerHTML = '';
   for (const p of profiles) {
-    // Get most recent post for this user
-    const { data: posts } = await sb.from('posts').select('subject, body, created_at').eq('handle', p.username).order('created_at', {ascending: false}).limit(1);
-    const post = posts?.[0];
+    const post = latestByHandle.get(p.username);
     const preview = post ? esc(post.body.split(' ').slice(0, 30).join(' ')) + '…' : '';
     const postSubject = post?.subject ? `<div style="font-size:10px;font-weight:700;color:#1a1a1a;text-transform:uppercase;margin:4px 0 2px;">${esc(post.subject)}</div>` : '';
 
