@@ -55,7 +55,10 @@ window.addEventListener('load', function() {
           ) fixed;
       }
     }
-    .app { display: grid; grid-template-columns: 2fr 5fr 3fr; min-height: 100vh; }
+    /* Narrow icon rail hard against the left edge, the entry grid in the middle, and
+       Popular Feeds down the right. With the entries laid out two across, the page
+       reads as three columns of boxes. */
+    .app { display: grid; grid-template-columns: 56px 1fr 320px; min-height: 100vh; }
     /* Grid items default to min-width:auto, so a track can never shrink below its
        content's minimum. The "Following — New" previews set white-space:nowrap on a
        whole entry, so the middle column demanded the full one-line width — over
@@ -80,7 +83,8 @@ window.addEventListener('load', function() {
     .btn-signout { background: none; border: 1px solid #555; color: #aaa; font-family: 'DM Sans', sans-serif; font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; padding: 4px 10px; cursor: pointer; }
     .btn-signout:hover { border-color: #fff; color: #fff; }
     .sidebar { background: #e8e3da; display: flex; flex-direction: column; }
-    .nav-item { padding: 16px 16px 16px 0; color: #ff4d1c; cursor: pointer; display: flex; align-items: center; justify-content: flex-end; flex-shrink: 0; transition: background 0.12s; }
+    /* Icons centre in the 56px rail rather than hugging the right of a wide column. */
+    .nav-item { padding: 15px 0; color: #ff4d1c; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.12s; }
     .nav-item:hover { background: rgba(0,0,0,0.05); }
     .nav-item i { font-size: 22px; }
     .nav-label { display: none; } /* icon-only sidebar — labels appear as native tooltips via title="" */
@@ -141,7 +145,18 @@ window.addEventListener('load', function() {
     .compose-ts { font-size: 10px; color: #aaa; text-transform: uppercase; letter-spacing: 0.08em; }
     .btn-publish { background: #1a1a1a; color: #fff; border: none; font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; padding: 8px 18px; cursor: pointer; }
     .btn-publish:hover { background: #ff4d1c; }
-    .post { border-bottom: 1px solid #d5cfc5; padding: 22px 28px; background: #f0ede6; }
+    .post { border-bottom: 1px solid #d5cfc5; padding: 22px 28px; background: #f0ede6; min-width: 0; }
+    /* Entries as boxes, two across. The 1px gaps let the darker backdrop show
+       through as grid lines, so with Popular Feeds down the right the page reads as
+       a three-column board. min-width:0 on each box stops one long unbroken word
+       from widening a whole column — the same trap that broke the old layout. */
+    #posts-container { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: #c5bfb5; border-top: 1px solid #c5bfb5; align-content: start; }
+    #posts-container > .post { border-bottom: none; }
+    #posts-container > .empty-state { grid-column: 1 / -1; background: #f0ede6; }
+    /* The signed-in writer's own most recent entry, full width beneath the hero. */
+    .my-latest { border-bottom: 2px solid #1a1a1a; }
+    .my-latest-label { padding: 7px 28px; background: #1a1a1a; color: #ff4d1c; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; }
+    .my-latest > .post { border-bottom: none; }
     .post-accent { width: 28px; height: 2px; background: #ff4d1c; margin-bottom: 10px; opacity: 0.9; }
     .post-meta { font-size: 10px; color: #aaa; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .post-meta-handle { color: #ff4d1c; font-weight: 700; }
@@ -327,8 +342,8 @@ window.addEventListener('load', function() {
     .user-info .signout-link:hover { color: #fff; }
     .btn-signin { background: #ff4d1c; border: none; color: #fff; font-family: 'DM Sans', sans-serif; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; padding: 6px 14px; cursor: pointer; }
     .btn-signin:hover { background: #e03d10; }
-    .anon-hero { background: #1a1a1a; color: #fff; padding: 48px 24px 40px; text-align: center; border-bottom: 2px solid #1a1a1a; }
-    .anon-hero-logo { font-size: 64px; font-weight: 700; text-transform: lowercase; letter-spacing: -0.04em; line-height: 1; margin-bottom: 36px; }
+    .anon-hero { background: #1a1a1a; color: #fff; padding: 22px 20px 20px; text-align: center; border-bottom: 2px solid #1a1a1a; }
+    .anon-hero-logo { font-size: 34px; font-weight: 700; text-transform: lowercase; letter-spacing: -0.04em; line-height: 1; margin-bottom: 16px; }
     .anon-hero-logo .o { color: #ff4d1c; }
     .anon-hero-cta { display: inline-flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
     .anon-hero-btn { background: #ff4d1c; border: none; color: #fff; font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; padding: 12px 22px; cursor: pointer; min-width: 180px; }
@@ -345,6 +360,8 @@ window.addEventListener('load', function() {
       /* App shell collapses to a single column; sidebar + right panel are hidden */
       .app { grid-template-columns: 1fr; height: auto; min-height: 100vh; max-width: 100vw; }
       .sidebar, .feed, .right-panel { grid-column: auto; }
+      /* One entry per row on a phone — two boxes across is unreadable at this width. */
+      #posts-container { grid-template-columns: 1fr; }
       /* Let the whole page scroll instead of the .feed having its own scroll
          (the internal scrollbar steals content width on mobile) */
       .feed { overflow-y: visible; }
@@ -458,27 +475,24 @@ window.addEventListener('load', function() {
 </div>
 
 <!-- MAIN APP -->
-<!-- Header + motto-bar live outside .app so their backgrounds stretch edge-to-edge of the viewport;
-     the .app-header-inner / .motto-bar-inner wrappers keep the *content* aligned with the centered columns below. -->
+<!-- The header lives outside .app so its background stretches edge-to-edge of the
+     viewport, while .app-header-inner keeps the content aligned with the columns
+     below. The orange motto bar that used to sit here has been removed; the feed
+     tabs it carried now sit in the header itself. -->
 <div class="app-header">
   <div class="app-header-inner">
     <div class="header-logo-line">
       <span class="header-logo">ech<span class="o">o</span><span class="logo-colon"></span></span>
       <span class="header-tagline-left">anonymous journaling</span>
     </div>
+    <div class="feed-tabs" id="feed-tabs" style="display:none">
+      <div class="feed-tab active" id="tab-all" onclick="switchFeedTab('all')">All</div>
+      <div class="feed-tab" id="tab-following" onclick="switchFeedTab('following')">Following</div>
+    </div>
     <button class="btn-signin" onclick="openAuth('signup')">Sign in / Sign up</button>
     <div class="user-info">
       <span class="user-handle"><span class="at">@</span><span id="header-username">–</span></span>
       <button class="signout-link" onclick="signOut()">sign out</button>
-    </div>
-  </div>
-</div>
-<div class="motto-bar">
-  <div class="motto-bar-inner">
-    <div class="motto" id="motto-text">tell your story the only way true stories can really be told. anonymously.</div>
-    <div class="feed-tabs" id="feed-tabs" style="display:none">
-      <div class="feed-tab active" id="tab-all" onclick="switchFeedTab('all')">All</div>
-      <div class="feed-tab" id="tab-following" onclick="switchFeedTab('following')">Following</div>
     </div>
   </div>
 </div>
@@ -512,15 +526,12 @@ window.addEventListener('load', function() {
           <button class="anon-hero-btn secondary" onclick="document.querySelector('.feed .post')?.scrollIntoView({behavior:'smooth', block:'start'})">Browse stories</button>
         </div>
       </div>
+      <!-- The signed-in writer's own most recent entry, sitting directly under the
+           hero. Hidden while signed out, or before a first entry exists. -->
+      <div class="my-latest" id="my-latest-box" style="display:none"></div>
+      <!-- Post boxes, laid out two across so that with the Popular Feeds column on
+           the right the page reads as a three-column grid. -->
       <div id="posts-container"></div>
-
-      <!-- Following new posts section -->
-      <div style="border-top:2px solid #1a1a1a;background:#e8e3da;">
-        <div style="padding:10px 20px;border-bottom:1px solid #d5cfc5;display:flex;align-items:center;justify-content:space-between;">
-          <div style="font-size:10px;font-weight:700;color:#1a1a1a;text-transform:uppercase;letter-spacing:0.1em;">Following — New</div>
-        </div>
-        <div id="following-new-list" style="padding:0 0 4px 0;"><div style="padding:12px 20px;font-size:10px;color:#aaa;text-transform:uppercase;">Follow users to see new posts here.</div></div>
-      </div>
     </div>
 
     <div id="view-following" class="view">
@@ -969,14 +980,12 @@ function showApp() {
   document.body.classList.remove('anon');
   document.getElementById('auth-overlay').style.display = 'none';
   document.getElementById('main-app').style.display = 'grid';
-  const m = document.getElementById('motto-text');
-  m.innerHTML = 'tell your story the only way true stories can really be told. anonymously.';
-  m.classList.add('manifesto');
   renderTagPicker();
   renderTagCloud();
   document.getElementById('compose-ts').textContent = nowStamp();
   document.getElementById('feed-tabs').style.display = 'flex';
   loadPosts();
+  loadMyLatest();
   loadRightPanel();
   loadTagsFromDB();
 }
@@ -1001,9 +1010,6 @@ function startEntry() {
 function showAnonApp() {
   document.body.classList.add('anon');
   document.getElementById('main-app').style.display = 'grid';
-  const m = document.getElementById('motto-text');
-  m.innerHTML = 'tell your story the only way true stories can really be told. anonymously.';
-  m.classList.add('manifesto');
   renderTagCloud();
   loadPosts();
   loadRightPanel();
@@ -1155,10 +1161,7 @@ function showView(v) {
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   document.getElementById('nav-'+v)?.classList.add('active');
   document.getElementById('feed-tabs').style.display = 'none';
-  const mottos = {feed:'tell your story the only way true stories can really be told. anonymously.',bookmarks:'your saved entries.',following:'writers you follow.',dm:'messages.',journal:'your journal.',settings:'settings.',profile:'my profile.',alerts:'recent activity.',search:'search.'};
-  const mottoEl = document.getElementById('motto-text');
-  mottoEl.innerHTML = mottos[v] || 'tell your true story.';
-  mottoEl.classList.toggle('manifesto', v === 'feed');
+  // The motto bar this used to write into has been removed from the layout.
   // Right-panel content (Popular Feeds) only shows on the Home/feed view
   document.querySelectorAll('.right-panel-section').forEach(s => { s.style.display = v === 'feed' ? '' : 'none'; });
   if (v==='feed') { document.getElementById('feed-tabs').style.display='flex'; loadPosts(); }
@@ -1523,38 +1526,61 @@ let feedRenderToken = 0;
 
 // Roughly a screenful. Query builders are single-use, so build a fresh one per call.
 const FEED_FIRST_PAGE = 15;
-function buildFeedQuery() {
-  let q = sb.from('posts').select('*, profiles!posts_user_id_fkey(age, gender, allow_comments)').order('created_at', {ascending: false});
-  if (activeFeedTab === 'following' && followedUsers.size > 0) {
-    q = q.in('handle', [...followedUsers].map(h => h.replace('@','')));
-  }
+const FEED_SELECT = '*, profiles!posts_user_id_fkey(age, gender, allow_comments)';
+function feedQuery(handles) {
+  let q = sb.from('posts').select(FEED_SELECT).order('created_at', {ascending: false});
+  if (handles?.length) q = q.in('handle', handles);
   return q;
 }
 
+// The grid leads with entries from the writers you follow and then continues with
+// everyone else's. That makes the follow list drive the page without it ever
+// sitting empty — a first-time visitor follows nobody by definition, and an empty
+// page is the worst thing to show someone deciding whether to stay. The Following
+// tab still narrows it to the follow list alone.
 async function loadPosts() {
   const token = ++feedRenderToken;
   const c = document.getElementById('posts-container');
   c.innerHTML = '<div class="empty-state">Loading…</div>';
-  if (activeFeedTab === 'following' && followedUsers.size === 0) {
+
+  const handles = [...followedUsers].map(h => h.replace('@',''));
+  const followingOnly = activeFeedTab === 'following';
+  if (followingOnly && !handles.length) {
     c.innerHTML = '<div class="empty-state">Follow writers to see their entries here.</div>';
     return;
   }
 
-  // Pulling every entry with its full body took ~665ms and held up the two other
-  // start-up queries behind it, so nothing appeared for about a second. Paint the
-  // first screenful immediately, then quietly append the rest — same entries, just
-  // visible much sooner.
-  const { data, error } = await buildFeedQuery().range(0, FEED_FIRST_PAGE - 1);
-  if (token !== feedRenderToken) return;
-  c.innerHTML = '';
-  if (error || !data?.length) { c.innerHTML = '<div class="empty-state">No entries yet. Be the first to write.</div>'; return; }
-  data.forEach(p => renderPost(p, c));
+  const seen = new Set();
+  const paint = rows => (rows || []).forEach(p => {
+    if (seen.has(p.id)) return;
+    seen.add(p.id);
+    renderPost(p, c);
+  });
 
-  // A short first page means there is nothing more to fetch.
-  if (data.length < FEED_FIRST_PAGE) return;
-  const { data: rest } = await buildFeedQuery().range(FEED_FIRST_PAGE, 999);
+  // Fetching every entry with its full body took ~665ms and blocked the other
+  // start-up queries, so nothing appeared for about a second. Paint a screenful
+  // first, then fill in the remainder quietly.
+  const followed = handles.length
+    ? (await feedQuery(handles).range(0, FEED_FIRST_PAGE - 1)).data
+    : [];
   if (token !== feedRenderToken) return;
-  (rest || []).forEach(p => renderPost(p, c));
+
+  let others = [];
+  if (!followingOnly) {
+    others = (await feedQuery().range(0, FEED_FIRST_PAGE - 1)).data || [];
+    if (token !== feedRenderToken) return;
+  }
+
+  c.innerHTML = '';
+  paint(followed);
+  paint(others);
+  if (!seen.size) { c.innerHTML = '<div class="empty-state">No entries yet. Be the first to write.</div>'; return; }
+
+  // Remainder in the background. Deduping by id means an entry already shown from
+  // the follow list is never repeated here.
+  const { data: rest } = await feedQuery(followingOnly ? handles : null).range(FEED_FIRST_PAGE, 999);
+  if (token !== feedRenderToken) return;
+  paint(rest);
 }
 
 let pendingPost = null;
@@ -2096,21 +2122,29 @@ async function loadPopularFeeds() {
   }
 }
 
-async function loadFollowingNew() {
-  const el = document.getElementById('following-new-list');
-  if (!followedUsers.size) { el.innerHTML = '<div style="font-size:10px;color:#aaa;text-transform:uppercase;">Follow users to see new posts here.</div>'; return; }
-  const handles = [...followedUsers].map(h => h.replace('@',''));
-  const { data } = await sb.from('posts').select('*').in('handle', handles).order('created_at', {ascending:false}).limit(3);
-  if (!data?.length) { el.innerHTML = '<div style="font-size:10px;color:#aaa;text-transform:uppercase;">No new posts yet.</div>'; return; }
-  el.innerHTML = '';
-  data.forEach(p => {
-    const d = document.createElement('div');
-    d.className = 'following-post-item';
-    d.onclick = () => { showView('feed'); setTimeout(() => document.getElementById('post-'+p.id)?.scrollIntoView({behavior:'smooth'}), 300); };
-    const subHTML = p.subject ? `<div class="following-post-subject">${esc(p.subject)}</div>` : '';
-    d.innerHTML = `<div class="following-post-handle">@${esc(p.handle)}</div>${subHTML}<div class="following-post-preview">${esc(p.body)}</div>`;
-    el.appendChild(d);
-  });
+// The "Following — New" strip that used to sit under the feed is gone: the main
+// grid is now the follow feed itself, so the strip only repeated it. Kept as a
+// no-op because loadRightPanel() still calls it.
+async function loadFollowingNew() {}
+
+// The signed-in writer's own most recent entry, shown in its own box directly
+// under the hero.
+async function loadMyLatest() {
+  const box = document.getElementById('my-latest-box');
+  if (!box) return;
+  if (!ME) { box.style.display = 'none'; return; }
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { box.style.display = 'none'; return; }
+  const { data, error } = await sb.from('posts')
+    .select('*, profiles!posts_user_id_fkey(age, gender, allow_comments)')
+    .eq('user_id', session.user.id)
+    .order('created_at', {ascending: false})
+    .limit(1);
+  const post = data?.[0];
+  if (error || !post) { box.style.display = 'none'; return; }
+  box.innerHTML = '<div class="my-latest-label">Your most recent entry</div>';
+  renderPost(post, box);
+  box.style.display = 'block';
 }
 </script>
 </body>
