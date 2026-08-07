@@ -112,8 +112,11 @@ window.addEventListener('load', function() {
     .btn-sm.on { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
     .feed { display: flex; flex-direction: column; }
     .motto-bar { background: #ff4d1c; }
-    .motto-bar-inner { padding: 12px 20px; display: flex; align-items: center; justify-content: center; }
-    .motto { font-size: 22px; font-weight: 700; color: #fff; text-transform: lowercase; letter-spacing: -0.02em; line-height: 1; text-align: center; }
+    .motto-bar-inner { padding: 12px 24px; display: block; }
+    /* The four words spread edge to edge across the ribbon: "tell" flush left,
+       "story" flush right, even gaps between. Each word is its own span so the
+       spacing is real layout rather than padded-out text. */
+    .motto { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; width: 100%; font-size: 22px; font-weight: 700; color: #fff; text-transform: lowercase; letter-spacing: -0.02em; line-height: 1; }
     .motto.manifesto { font-size: 13px; font-weight: 500; letter-spacing: 0.06em; }
     .feed-tabs { display: flex; }
     .feed-tab { font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.08em; padding: 4px 10px; cursor: pointer; border: 1px solid rgba(255,255,255,0.3); }
@@ -513,7 +516,7 @@ window.addEventListener('load', function() {
 </div>
 <div class="motto-bar">
   <div class="motto-bar-inner">
-    <div class="motto">tell your true story</div>
+    <div class="motto"><span>tell</span><span>your</span><span>true</span><span>story</span></div>
   </div>
 </div>
 <div class="app" id="main-app" style="display:none">
